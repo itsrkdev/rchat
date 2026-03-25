@@ -1,0 +1,9 @@
+.custom-appbar {
+    background-color: #00bfa5 !important;
+    height: 220px;
+    box-shadow: none !important;
+}
+.box{
+    background-color: #dcdcdc;
+    height: 100vh;
+}
