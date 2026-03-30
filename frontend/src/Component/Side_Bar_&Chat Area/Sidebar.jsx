@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X } from "lucide-react";
-import "./sidebar.css";
+import "./Sidebar.css";
 import io from "socket.io-client";
 import { useNavigate } from "react-router-dom";
 import { Moon, Sun, Archive } from "lucide-react";
