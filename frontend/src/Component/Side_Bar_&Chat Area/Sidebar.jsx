@@ -979,7 +979,7 @@ export default function Sidebar() {
                                     className="sidebar-avatar"
                                 />
                             </label>
-                            <span>{currentUser.name} Update your Dp</span>
+                            <span>Dp</span>
                         </div>
                         <button className="chat-logout-btn" onClick={handleLogout}>
                             Logout
