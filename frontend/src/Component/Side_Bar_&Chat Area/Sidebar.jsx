@@ -1077,15 +1077,15 @@ export default function Sidebar() {
                                             alt="avatar"
                                             className="chat-avatar"
                                         />
-                                        <div className="chat-info">
-                                            <div className="chat-name-time">
-                                                <span className="chat-name">{chat.name}</span>
-                                                {onlineUsers.includes(chat._id) ? (
+                                         {onlineUsers.includes(chat._id) ? (
                                                     <span className="online-dot"></span>
                                                 ) : (
                                                     <span className="offline-dot"></span>
                                                 )}
-
+                                        <div className="chat-info">
+                                            <div className="chat-name-time">
+                                                <span className="chat-name">{chat.name}</span>
+                                               
                                             </div>
                                             <div className={`chat-message ${unreadMessages[chat._id] ? "unread" : ""}`}>
                                                 {lastMessages[chat._id] || <span style={{ color: "gray" }}>Start chatting..</span>}
