@@ -701,16 +701,16 @@ export default function Sidebar() {
 
     // 3. WebRTC Functions
     const createPeer = (targetUserId) => {
-      onst peer = new RTCPeerConnection({
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            {
-                urls: "turn:your-turn-server-url.com", // Metered ya Twilio se lein
-                username: "your-username",
-                credential: "your-password"
-            }
-        ]
-    });
+       const peer = new RTCPeerConnection({
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                {
+                    urls: "turn:openrelay.metered.ca:80",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                }
+            ]
+        });
         
         // const peer = new RTCPeerConnection({
         //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
