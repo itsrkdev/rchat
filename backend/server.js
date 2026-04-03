@@ -62,8 +62,8 @@ global.io = null;
 const io = socketIo(server, {
     pingTimeout: 5000,    // 5 sec mein detect karega agar connection lost hai
     pingInterval: 2000,   // Har 2 sec mein check karega
-    // cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] }
-    cors: { origin: "*", methods: ["GET", "POST"] }
+   cors: { origin: ["https://r-chat1.netlify.app", "https://rchat-gcv1.onrender.com"] }
+    // cors: { origin: "*", methods: ["GET", "POST"] }
 });
 global.io = io; // assign io to global so routes can access it
 
@@ -76,6 +76,7 @@ io.on("connection", (socket) => {
     socket.on("join", (userId) => {
         if (!userId) return;
         socket.join(userId); // ⭐ User ki ID ko hi room bana diya
+        socket.userId = userId; // ⭐ Ye line add karein/////////
         global.users[userId] = socket.id;
         console.log(`User ${userId} joined their personal room`);
         io.emit("onlineusers", Object.keys(global.users));
@@ -155,10 +156,11 @@ io.on("connection", (socket) => {
     // });
 
     socket.on("acceptCall", ({ to, answer }) => {
-        const callerSocketId = global.users[to];
-        if (callerSocketId) {
-            io.to(callerSocketId).emit("callAccepted", { answer });
-        }
+         io.to(to).emit("callAccepted", { answer });
+        // const callerSocketId = global.users[to];
+        // if (callerSocketId) {
+        //     io.to(callerSocketId).emit("callAccepted", { answer });
+        // }
     });
 
     socket.on("callRejected", ({ to }) => {
@@ -186,10 +188,11 @@ io.on("connection", (socket) => {
 
 
     socket.on("iceCandidate", ({ to, candidate }) => {
-        const receiverSocketId = global.users[to];
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("iceCandidate", { candidate });
-        }
+        io.to(to).emit("iceCandidate", { candidate });
+        // const receiverSocketId = global.users[to];
+        // if (receiverSocketId) {
+        //     io.to(receiverSocketId).emit("iceCandidate", { candidate });
+        // }
     });
 
 
