@@ -6,7 +6,6 @@ const router = express.Router();
 const { upload } = require('../Middleware/cloudinaryConfig');
 
 // Upload avatar
-
 router.post("/upload-avatar", authMiddleware, upload.single('avatar'), async (req, res) => {
     try {
         // 1. Check karein ki file upload hui ya nahi
