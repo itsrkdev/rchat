@@ -3,39 +3,69 @@ const User = require("../Models/UserModel");
 const authMiddleware = require("../Middleware/authmiddleware");
 const mongoose = require("mongoose");
 const router = express.Router();
-const multer = require("multer");
-const path = require('path');
+const { upload } = require('../Middleware/cloudinaryConfig');
+// const multer = require("multer");
+// const path = require('path');
 
 
 // Configure storage for multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, "../uploads/avatars")); // make sure it matches server.js
-    },
-    filename: function (req, file, cb) {
-        const ext = path.extname(file.originalname);
-        cb(null, req.userId + '-' + Date.now() + ext);
-    }
-});
-const upload = multer({ storage });
+// const storage = multer.diskStorage({
+//     destination: function (req, file, cb) {
+//         cb(null, path.join(__dirname, "../uploads/avatars")); // make sure it matches server.js
+//     },
+//     filename: function (req, file, cb) {
+//         const ext = path.extname(file.originalname);
+//         cb(null, req.userId + '-' + Date.now() + ext);
+//     }
+// });
+// const upload = multer({ storage });
 
 // Upload avatar
+
 router.post("/upload-avatar", authMiddleware, upload.single('avatar'), async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+        // 1. Check karein ki file upload hui ya nahi
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
 
+        // 2. Cloudinary ka URL 'req.file.path' mein hota hai
+        const cloudinaryUrl = req.file.path;
+
+        // 3. Database mein local path ki jagah Cloudinary URL save karein
         const updatedUser = await User.findByIdAndUpdate(
             req.userId,
-            { avatar: `/uploads/avatars/${req.file.filename}` },
+            { avatar: cloudinaryUrl },
             { new: true }
-        );
+        ).select("-password"); // Security ke liye password exclude karein
 
-        res.json({ message: "Avatar updated successfully", avatar: updatedUser.avatar });
+        res.json({
+            message: "Avatar updated successfully on Cloudinary",
+            avatar: updatedUser.avatar
+        });
+
     } catch (err) {
-        console.error(err);
+        console.error("Upload Error:", err);
         res.status(500).json({ message: "Server error" });
     }
 });
+
+// router.post("/upload-avatar", authMiddleware, upload.single('avatar'), async (req, res) => {
+//     try {
+//         if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+//         const updatedUser = await User.findByIdAndUpdate(
+//             req.userId,
+//             { avatar: `/uploads/avatars/${req.file.filename}` },
+//             { new: true }
+//         );
+
+//         res.json({ message: "Avatar updated successfully", avatar: updatedUser.avatar });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: "Server error" });
+//     }
+// });
 
 
 
