@@ -1078,13 +1078,25 @@ const acceptCall = async () => {
                                 onChange={handleAvatarChange}  // handle file selection
                             />
                             <label htmlFor="avatarUpload" className="avatar-label">
-                                <img
+
+                                 <img
+                                    src={
+                                        currentUser.avatar
+                                            ? currentUser.avatar.startsWith("http")
+                                                ? currentUser.avatar // Agar Cloudinary link hai toh direct use karein
+                                                : `${backendUrl}${currentUser.avatar}` // Agar purani local file hai toh backendUrl jodein
+                                            : "./user.png" // Fallback image
+                                    }
+                                    alt="avatar"
+                                    className="sidebar-avatar"
+                                />
+                                {/* <img
                                     src={currentUser.avatar
                                         ? `${backendUrl}${currentUser.avatar}`
                                         : "./user.png"}  // fallback avatar
                                     alt="avatar"
                                     className="sidebar-avatar"
-                                />
+                                /> */}
                             </label>
                             <span>Dp</span>
                         </div>
@@ -1139,11 +1151,24 @@ const acceptCall = async () => {
                                     .map((chat, k) => (
 
                                         <div className="chat-item archived" onClick={() => setSelectedChat(chat)}>
-                                            <img
-                                                src={chat.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
+                                             <img
+                                                src={
+                                                    chat.avatar
+                                                        ? chat.avatar.startsWith("http")
+                                                            ? chat.avatar  // Direct Cloudinary link use hoga
+                                                            : `${backendUrl}${chat.avatar}` // Local file ke liye backendUrl judega
+                                                        : "./user.png"
+                                                }
                                                 alt="avatar"
                                                 className="chat-avatar"
                                             />
+                                            
+                                            
+                                            {/* <img
+                                                src={chat.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
+                                                alt="avatar"
+                                                className="chat-avatar"
+                                            /> */}
                                             <div className="chat-info">
                                                 <span className="chat-name">{chat.name}</span>
                                                 <span className="chat-message">{lastMessages[chat._id] || "Start chatting..."}</span>
@@ -1180,10 +1205,22 @@ const acceptCall = async () => {
                                         }}
                                     >
                                         <img
-                                            src={chat?.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
+                                            src={
+                                                chat.avatar
+                                                    ? chat.avatar.startsWith("http")
+                                                        ? chat.avatar  // Direct Cloudinary link use hoga
+                                                        : `${backendUrl}${chat.avatar}` // Local file ke liye backendUrl judega
+                                                    : "./user.png"
+                                            }
                                             alt="avatar"
                                             className="chat-avatar"
                                         />
+                                        
+                                        {/* <img
+                                            src={chat?.avatar ? `${backendUrl}${chat.avatar}` : "./user.png"}
+                                            alt="avatar"
+                                            className="chat-avatar"
+                                        /> */}
                                          {onlineUsers.includes(chat._id) ? (
                                                     <span className="online-dot"></span>
                                                 ) : (
@@ -1223,12 +1260,25 @@ const acceptCall = async () => {
                                 <button className="back-btn" onClick={handleBackToList}>
                                     <X size={24} /> {/* Ya arrow icon use karein */}
                                 </button>
-
-                                <img
-                                    src={selectedChat.avatar ? `${backendUrl}${selectedChat.avatar}` : "./user.png"}
+                                  <img
+                                    src={
+                                        selectedChat.avatar
+                                            ? selectedChat.avatar.startsWith("http")
+                                                ? selectedChat.avatar // Cloudinary ka direct link
+                                                : `${backendUrl}${selectedChat.avatar}` // Purana local path
+                                            : "./user.png" // Default image
+                                    }
                                     alt="avatar"
                                     className="header-avatar"
                                 />
+
+                                
+
+                                {/* <img
+                                    src={selectedChat.avatar ? `${backendUrl}${selectedChat.avatar}` : "./user.png"}
+                                    alt="avatar"
+                                    className="header-avatar"
+                                /> */}
                                 <div className="header-info">
                                     <span className="header-name">{selectedChat.name}</span>
                                 </div>
@@ -1366,14 +1416,27 @@ const acceptCall = async () => {
                         </>
                     ) : (
                         <div className="no-chat-selected">
-                            <img
+
+                             <img
+                                src={
+                                    currentUser?.avatar
+                                        ? currentUser.avatar.startsWith("http")
+                                            ? currentUser.avatar // Agar Cloudinary URL hai
+                                            : `${backendUrl}${currentUser.avatar}` // Agar local path hai
+                                        : "./user.png" // Agar avatar missing hai
+                                }
+                                alt="avatar"
+                                className="no-chat-image"
+                            />
+                            
+                            {/* <img
                                 src={currentUser?.avatar
                                     ? `${backendUrl}${currentUser.avatar}`
                                     : "./user.png"}  // fallback avatar
                                 alt="avatar"
                                 className="no-chat-image"
                             // className="sidebar-avatar"
-                            />
+                            /> */}
                             <h4>Hello {currentUser?.name}</h4>
                             <h2>Welcome to R-Chat</h2>
                             <p>Select a chat from the list on the left to start messaging your friends instantly.</p>
