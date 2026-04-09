@@ -657,14 +657,27 @@ export default function Sidebar() {
         //     console.log("Remote user cut the call");
         //     resetCallStates(); // local cleanup function
         // });
-
-        socket.on("iceCandidate", async ({ candidate }) => {
+         socket.on("iceCandidate", async ({ candidate }) => {
             try {
                 if (peerRef.current && peerRef.current.remoteDescription) {
+                    // Agar remote description set hai, toh turant add karo
                     await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+                } else {
+                    // Agar nahi hai, toh queue mein daal do
+                    pendingCandidates.current.push(candidate);
                 }
-            } catch (err) { console.error("ICE Error", err); }
+            } catch (err) {
+                console.error("ICE Error", err);
+            }
         });
+
+        // socket.on("iceCandidate", async ({ candidate }) => {
+        //     try {
+        //         if (peerRef.current && peerRef.current.remoteDescription) {
+        //             await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        //         }
+        //     } catch (err) { console.error("ICE Error", err); }
+        // });
 
         return () => {
             socket.off("incomingCall");
@@ -1007,24 +1020,23 @@ const acceptCall = async () => {
                 <div className="video-call-window">
 
                  {/* Remote Video */}
-<video 
-    ref={remoteVideoRef} 
-    autoPlay 
-    playsInline 
-    muted={false} // <--- VOICE KE LIYE
-    className="remote-vid" 
-/>
+                     <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
+                        onLoadedMetadata={(e) => e.target.play()} // Force play jab data load ho
+                        className="remote-vid"
+                    />
 
-{/* Local Video  (Aapki apni)*/}
-<video 
-    ref={localVideoRef} 
-    autoPlay 
-    playsInline 
-   muted={false} // <--- VOICE KE LIYE
-    className="local-vid" 
-/>
-
-                    
+                    {/* Local Video (Aapki apni - isse mute rakhna hai) */}
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted={true} // <--- Isse hamesha true rakhein echo se bachne ke liye
+                        className="local-vid"
+                    />
+                   
                     {/* Remote Video (Dusre bande ki) */}
                     {/* <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" /> */}
 
