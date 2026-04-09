@@ -186,14 +186,23 @@ io.on("connection", (socket) => {
         }
     });
 
-
-    socket.on("iceCandidate", ({ to, candidate }) => {
-        io.to(to).emit("iceCandidate", { candidate });
-        // const receiverSocketId = global.users[to];
-        // if (receiverSocketId) {
-        //     io.to(receiverSocketId).emit("iceCandidate", { candidate });
-        // }
+    // Backend: iceCandidate logic
+   socket.on("iceCandidate", ({ to, candidate }) => {
+    // 'to' yahan target user ki ID hai.
+    // Hamesha room (UserId) ka use karein kyunki aapne socket.join(userId) kiya hua hai.
+    io.to(to).emit("iceCandidate", { 
+        candidate, 
+        from: socket.userId // Kisne bheja ye batana bhi behtar hai
     });
+});
+
+    // socket.on("iceCandidate", ({ to, candidate }) => {
+    //     io.to(to).emit("iceCandidate", { candidate });
+    //     // const receiverSocketId = global.users[to];
+    //     // if (receiverSocketId) {
+    //     //     io.to(receiverSocketId).emit("iceCandidate", { candidate });
+    //     // }
+    // });
 
 
 });
