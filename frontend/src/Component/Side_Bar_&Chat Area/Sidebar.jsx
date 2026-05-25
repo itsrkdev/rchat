@@ -115,25 +115,65 @@ export default function Sidebar() {
     }, [token]);
 
     // Listen for online users
-    useEffect(() => {
-        const handleOnlineUsers = (users) => {
-            console.log("Online users from server:", users);
-            setOnlineUsers(users);
-        };
+// Listen for online users - FIXED LOOP
+useEffect(() => {
+    if (!socket) return;
 
-        socket.on("onlineusers", handleOnlineUsers);
+    // --- Safety Clean-up: Pehle puraane listeners ko hatao ---
+    socket.off("onlineusers");
+    socket.off("connect");
 
-        socket.on("connect", () => {
-            if (currentUser?._id) {
-                socket.emit("join", currentUser._id);
-            }
-        });
+    // 1. Online Users Handler
+    const handleOnlineUsers = (users) => {
+        console.log("Online users from server:", users);
+        setOnlineUsers(users);
+    };
+    socket.on("onlineusers", handleOnlineUsers);
 
-        return () => {
-            socket.off("onlineusers", handleOnlineUsers);
-            socket.off("connect");
-        };
-    }, [currentUser]);
+    // 2. Connect Handler (Agar socket disconnect hoke wapas connect ho)
+    const handleConnect = () => {
+        if (currentUser?._id) {
+            console.log("Sending join for:", currentUser._id);
+            socket.emit("join", currentUser._id);
+        }
+    };
+    socket.on("connect", handleConnect);
+
+    // 3. 🔴 Urgent Manual Trigger: Agar socket PEHLE SE hi connected hai, 
+    // toh automatic emit karo, connect event ka wait mat karo
+    if (socket.connected && currentUser?._id) {
+        console.log("Socket already connected, sending join directly for:", currentUser._id);
+        socket.emit("join", currentUser._id);
+    }
+
+    // --- Clean-up on unmount ---
+    return () => {
+        socket.off("onlineusers", handleOnlineUsers);
+        socket.off("connect", handleConnect);
+    };
+}, [socket, currentUser?._id]); // 🔴 Dependency badal di hai taaki loop na bane
+
+
+    
+    // useEffect(() => {
+    //     const handleOnlineUsers = (users) => {
+    //         console.log("Online users from server:", users);
+    //         setOnlineUsers(users);
+    //     };
+
+    //     socket.on("onlineusers", handleOnlineUsers);
+
+    //     socket.on("connect", () => {
+    //         if (currentUser?._id) {
+    //             socket.emit("join", currentUser._id);
+    //         }
+    //     });
+
+    //     return () => {
+    //         socket.off("onlineusers", handleOnlineUsers);
+    //         socket.off("connect");
+    //     };
+    // }, [currentUser]);
 
     useEffect(() => {
         if (currentUser && currentUser._id) {
