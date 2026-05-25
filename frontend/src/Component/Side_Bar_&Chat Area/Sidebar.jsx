@@ -653,31 +653,40 @@ export default function Sidebar() {
         });
 
 
-        // socket.on("callEnded", () => {
-        //     console.log("Remote user cut the call");
-        //     resetCallStates(); // local cleanup function
-        // });
-         socket.on("iceCandidate", async ({ candidate }) => {
-            try {
-                if (peerRef.current && peerRef.current.remoteDescription) {
-                    // Agar remote description set hai, toh turant add karo
-                    await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-                } else {
-                    // Agar nahi hai, toh queue mein daal do
-                    pendingCandidates.current.push(candidate);
-                }
-            } catch (err) {
-                console.error("ICE Error", err);
-            }
-        });
+      //newwwwwwwwwww
+        socket.on("iceCandidate", async (data) => {
+    try {
+        // Backend se data.candidate mil raha hai
+        const actualCandidate = data.candidate;
+        if (!actualCandidate) return;
 
-        // socket.on("iceCandidate", async ({ candidate }) => {
+        if (peerRef.current && peerRef.current.remoteDescription) {
+            // Agar remote description ready hai, toh direct add karo
+            await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
+        } else {
+            // Agar ready nahi hai, toh queue (.current) me daal do
+            pendingCandidates.current.push(actualCandidate);
+        }
+    } catch (err) {
+        console.error("ICE Candidate adding error:", err);
+    }
+});
+        
+        //  socket.on("iceCandidate", async ({ candidate }) => {
         //     try {
         //         if (peerRef.current && peerRef.current.remoteDescription) {
+        //             // Agar remote description set hai, toh turant add karo
         //             await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        //         } else {
+        //             // Agar nahi hai, toh queue mein daal do
+        //             pendingCandidates.current.push(candidate);
         //         }
-        //     } catch (err) { console.error("ICE Error", err); }
+        //     } catch (err) {
+        //         console.error("ICE Error", err);
+        //     }
         // });
+
+        
 
         return () => {
             socket.off("incomingCall");
@@ -717,14 +726,29 @@ export default function Sidebar() {
 const createPeer = (targetUserId) => {
     const peer = new RTCPeerConnection({
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun.l.google.com:19302" }, // Google ka free STUN server
             {
-                urls: "turn:openrelay.metered.ca:80",
-                username: "openrelayproject",
-                credential: "openrelayproject"
+                urls: [
+                    "turn:global.metered.ca:80",
+                    "turn:global.metered.ca:443",
+                    "turns:global.metered.ca:443?transport=tcp"
+                ],
+                username: "3725ed443897b03f47679e29", // Aapka metered username
+                credential: "OenRfU4K9Mb+Objg"       // Aapka metered password
             }
         ]
     });
+    
+    // const peer = new RTCPeerConnection({
+    //     iceServers: [
+    //         { urls: "stun:stun.l.google.com:19302" },
+    //         {
+    //             urls: "turn:openrelay.metered.ca:80",
+    //             username: "openrelayproject",
+    //             credential: "openrelayproject"
+    //         }
+    //     ]
+    // });
 
     peer.onicecandidate = (event) => {
         if (event.candidate) {
@@ -886,28 +910,43 @@ const createPeer = (targetUserId) => {
     };
 
     // --- 2. CALL ACCEPT ---
-const acceptCall = async () => {
+    //newwwww
+    const acceptCall = async () => {
     if (!incomingCall) return;
-    
-    // 1. Pehle Media lo
-    const stream = await initializeMedia();
-    if (!stream) return alert("Camera/Mic access required");
-
-    setIsCalling(true);
-    
-    // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
-    const peer = createPeer(incomingCall.from);
-    peerRef.current = peer;
 
     try {
+        // 1. Pehle Media (Camera/Mic) lo aur stream receive karo
+        const stream = await initializeMedia();
+        if (!stream) return alert("Camera/Mic access required");
+
+        setIsCalling(true);
+
+        // 2. Peer create karo
+        const peer = createPeer(incomingCall.from);
+        peerRef.current = peer;
+
+        // 🔥 IMPORTANT FIX: state update hone ka wait kare bina, direct naye stream ke tracks peer connection me add karo
+        stream.getTracks().forEach(track => {
+            console.log("Adding local track to peer:", track.kind);
+            peer.addTrack(track, stream);
+        });
+
         // 3. Remote offer set karein
         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
 
-        // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
-        console.log("Clearing pending candidates:", pendingCandidates.length);
-        while (pendingCandidates.length > 0) {
-            const cand = pendingCandidates.shift();
-            await peer.addIceCandidate(new RTCIceCandidate(cand));
+        // 4. ✅ FIXED QUEUE CLEAR: '.current' laga diya hai taaki candidates sahi se add hon
+        console.log("Clearing pending candidates queue. Total:", pendingCandidates.current.length);
+        
+        while (pendingCandidates.current.length > 0) {
+            const cand = pendingCandidates.current.shift();
+            if (cand) {
+                try {
+                    await peer.addIceCandidate(new RTCIceCandidate(cand));
+                    console.log("✅ Queued ICE Candidate successfully added!");
+                } catch (iceErr) {
+                    console.error("❌ Error adding queued ICE candidate:", iceErr);
+                }
+            }
         }
 
         // 5. Answer bhejein
@@ -916,23 +955,51 @@ const acceptCall = async () => {
 
         socket.emit("acceptCall", { to: incomingCall.from, answer });
         setIncomingCall(null);
+
     } catch (err) {
         console.error("Error in acceptCall flow:", err);
+        alert("Call accept karne me koi galti hui h. Console check karein.");
     }
 };
-    // const acceptCall = async () => {
-    //     if (!incomingCall) return;
-    //     setIsCalling(true);
-    //     const peer = createPeer(incomingCall.from);
-    //     peerRef.current = peer;
 
-    //     await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-    //     const answer = await peer.createAnswer();
-    //     await peer.setLocalDescription(answer);
 
-    //     socket.emit("acceptCall", { to: incomingCall.from, answer });
-    //     setIncomingCall(null);
-    // };
+    
+// const acceptCall = async () => {
+//     if (!incomingCall) return;
+    
+//     // 1. Pehle Media lo
+//     const stream = await initializeMedia();
+//     if (!stream) return alert("Camera/Mic access required");
+
+//     setIsCalling(true);
+    
+//     // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
+//     const peer = createPeer(incomingCall.from);
+//     peerRef.current = peer;
+
+//     try {
+//         // 3. Remote offer set karein
+//         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+
+//         // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
+//         console.log("Clearing pending candidates:", pendingCandidates.length);
+//         while (pendingCandidates.length > 0) {
+//             const cand = pendingCandidates.shift();
+//             await peer.addIceCandidate(new RTCIceCandidate(cand));
+//         }
+
+//         // 5. Answer bhejein
+//         const answer = await peer.createAnswer();
+//         await peer.setLocalDescription(answer);
+
+//         socket.emit("acceptCall", { to: incomingCall.from, answer });
+//         setIncomingCall(null);
+//     } catch (err) {
+//         console.error("Error in acceptCall flow:", err);
+//     }
+// };
+
+    
 
     // --- 3. CALL REJECT (Jab incoming call aaye aur aap 'Cut' karein) ---
     const rejectCall = () => {
