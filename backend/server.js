@@ -1,155 +1,517 @@
 const express = require("express");
-const mongoose = require('mongoose');
-const http = require('http');
+const mongoose = require("mongoose");
+const http = require("http");
 const cors = require("cors");
-const socketIo = require('socket.io');
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
+const socketIo = require("socket.io");
+require("dotenv").config();
+
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+
 const app = express();
+
 const PORT = process.env.PORT || 3000;
+
 const server = http.createServer(app);
-const os = require('os');
+
+// =========================
+// NETWORK IP
+// =========================
 
 const getNetworkIp = () => {
+
     const interfaces = os.networkInterfaces();
+
     for (const name in interfaces) {
+
         for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
+
+            if (
+                iface.family === "IPv4" &&
+                !iface.internal
+            ) {
                 return iface.address;
             }
         }
     }
-    return 'localhost';
+
+    return "localhost";
 };
 
-const uploadPath = path.join(__dirname, "uploads/avatars");
+// =========================
+// FOLDERS
+// =========================
+
+const uploadPath = path.join(
+    __dirname,
+    "uploads/avatars"
+);
+
 if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath, { recursive: true });
+
+    fs.mkdirSync(uploadPath, {
+        recursive: true
+    });
 }
 
-const uploadFiles = path.join(__dirname, "uploads/files");
+const uploadFiles = path.join(
+    __dirname,
+    "uploads/files"
+);
+
 if (!fs.existsSync(uploadFiles)) {
-    fs.mkdirSync(uploadFiles, { recursive: true });
+
+    fs.mkdirSync(uploadFiles, {
+        recursive: true
+    });
 }
 
-app.use(cors());
-app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, "uploads")));
+// =========================
+// MIDDLEWARE
+// =========================
 
-app.use("/api/auth", require("./Routes/authRoute"));
-app.use("/api/chats", require("./Routes/chatRoute"));
-app.use("/api/users", require("./Routes/users"));
+app.use(cors({
+    origin: [
+        "https://r-chat1.netlify.app",
+        "https://rchat-gcv1.onrender.com"
+    ],
+    credentials: true
+}));
+
+app.use(express.json());
+
+app.use(
+    "/uploads",
+    express.static(
+        path.join(__dirname, "uploads")
+    )
+);
+
+// =========================
+// ROUTES
+// =========================
+
+app.use(
+    "/api/auth",
+    require("./Routes/authRoute")
+);
+
+app.use(
+    "/api/chats",
+    require("./Routes/chatRoute")
+);
+
+app.use(
+    "/api/users",
+    require("./Routes/users")
+);
+
 app.get("/", (req, res) => {
-    res.send("server is running");
+    res.send("Server Running");
 });
 
-global.users = {};
-global.io = null;
+// =========================
+// SOCKET.IO
+// =========================
 
 const io = socketIo(server, {
-    pingTimeout: 5000,
-    pingInterval: 2000,
-    cors: { origin: ["https://r-chat1.netlify.app", "https://rchat-gcv1.onrender.com"] }
+
+    cors: {
+        origin: [
+            "https://r-chat1.netlify.app",
+            "https://rchat-gcv1.onrender.com"
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
+    },
+
+    transports: ["websocket"],
+
+    pingTimeout: 60000,
+
+    pingInterval: 25000
 });
+
+// =========================
+// GLOBAL USERS
+// =========================
+
+global.users = {};
 global.io = io;
 
+// =========================
+// SOCKET CONNECTION
+// =========================
+
 io.on("connection", (socket) => {
-    console.log("User connected:", socket.id);
 
-    // Join
+    console.log(
+        "✅ Socket Connected:",
+        socket.id
+    );
+
+    // =========================
+    // JOIN
+    // =========================
+
     socket.on("join", (userId) => {
-        if (!userId) return;
-        socket.join(userId);
-        socket.userId = userId;
-        global.users[userId] = socket.id;
-        console.log(`User ${userId} joined room`);
-        io.emit("onlineusers", Object.keys(global.users));
-    });
 
-    // Private Message
-    socket.on("privateMessage", ({ sender, receiver, message, file, _id }) => {
-        const receiverSocketId = global.users[receiver];
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("receiveMessage", {
-                sender,
-                message,
-                file,
-                _id,
-                createdAt: new Date()
-            });
+        try {
+
+            if (!userId) return;
+
+            // old socket remove
+            if (
+                global.users[userId] &&
+                global.users[userId] !== socket.id
+            ) {
+
+                delete global.users[userId];
+            }
+
+            socket.userId = userId;
+
+            socket.join(userId);
+
+            global.users[userId] = socket.id;
+
+            console.log(
+                `🟢 User Joined: ${userId}`
+            );
+
+            io.emit(
+                "onlineusers",
+                Object.keys(global.users)
+            );
+
+        } catch (err) {
+            console.log("Join Error:", err);
         }
     });
 
-    // Delete Message
-    socket.on("deleteMessage", ({ messageId, senderId, receiverId }) => {
-        const receiverSocketId = global.users[receiverId];
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("messageDeleted", { messageId, senderId });
-        }
-    });
+    // =========================
+    // PRIVATE MESSAGE
+    // =========================
 
-    // ✅ Call User
-    socket.on("callUser", ({ to, from, name, offer }) => {
-        console.log(`📞 Incoming call to room: ${to} from: ${from}`);
-        io.to(to).emit("incomingCall", {
+    socket.on(
+        "privateMessage",
+        (data) => {
+
+            try {
+
+                const {
+                    sender,
+                    receiver,
+                    message,
+                    file,
+                    _id
+                } = data;
+
+                if (!receiver) return;
+
+                io.to(receiver).emit(
+                    "receiveMessage",
+                    {
+                        sender,
+                        receiver,
+                        message,
+                        file,
+                        _id,
+                        createdAt: new Date()
+                    }
+                );
+
+            } catch (err) {
+                console.log(
+                    "Private Msg Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // DELETE MESSAGE
+    // =========================
+
+    socket.on(
+        "deleteMessage",
+        ({
+            messageId,
+            senderId,
+            receiverId
+        }) => {
+
+            try {
+
+                if (!receiverId) return;
+
+                io.to(receiverId).emit(
+                    "messageDeleted",
+                    {
+                        messageId,
+                        senderId
+                    }
+                );
+
+            } catch (err) {
+                console.log(
+                    "Delete Msg Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // CALL USER
+    // =========================
+
+    socket.on(
+        "callUser",
+        ({
             to,
             from,
             name,
             offer
-        });
-    });
+        }) => {
 
-    // ✅ Accept Call - FIXED: sirf ek emit, double nahi
-    socket.on("acceptCall", ({ to, answer }) => {
-        console.log(`✅ Call accepted, forwarding to room: ${to}`);
-        // Sirf room-based emit - double emit band kiya
-        io.to(to).emit("callAccepted", { answer });
-    });
+            try {
 
-    // Reject Call
-    socket.on("callRejected", ({ to }) => {
-        console.log(`🚫 Call rejected for: ${to}`);
-        io.to(to).emit("callRejected");
-    });
+                if (!to || !offer) return;
 
-    // End Call
-    socket.on("endCall", ({ to }) => {
-        console.log(`📴 Call ended for: ${to}`);
-        io.to(to).emit("callEnded");
-    });
+                console.log(
+                    `📞 Call From ${from} -> ${to}`
+                );
 
-    // ✅ ICE Candidate
-    socket.on("iceCandidate", ({ to, candidate }) => {
-        io.to(to).emit("iceCandidate", {
-            candidate,
-            from: socket.userId
-        });
-    });
+                io.to(to).emit(
+                    "incomingCall",
+                    {
+                        to,
+                        from,
+                        name,
+                        offer
+                    }
+                );
 
-    // Disconnect
-    socket.on("disconnect", () => {
-        if (socket.userId) {
-            delete global.users[socket.userId];
-            io.emit("onlineusers", Object.keys(global.users));
-            console.log(`User ${socket.userId} is now offline.`);
+            } catch (err) {
+                console.log(
+                    "Call User Error:",
+                    err
+                );
+            }
         }
-        console.log("Socket disconnected:", socket.id);
-    });
+    );
+
+    // =========================
+    // ACCEPT CALL
+    // =========================
+
+    socket.on(
+        "acceptCall",
+        ({ to, answer }) => {
+
+            try {
+
+                if (!to || !answer) return;
+
+                console.log(
+                    `✅ Call Accepted -> ${to}`
+                );
+
+                io.to(to).emit(
+                    "callAccepted",
+                    {
+                        answer
+                    }
+                );
+
+            } catch (err) {
+                console.log(
+                    "Accept Call Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // REJECT CALL
+    // =========================
+
+    socket.on(
+        "callRejected",
+        ({ to }) => {
+
+            try {
+
+                if (!to) return;
+
+                console.log(
+                    `🚫 Call Rejected -> ${to}`
+                );
+
+                io.to(to).emit(
+                    "callRejected"
+                );
+
+            } catch (err) {
+                console.log(
+                    "Reject Call Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // END CALL
+    // =========================
+
+    socket.on(
+        "endCall",
+        ({ to }) => {
+
+            try {
+
+                if (!to) return;
+
+                console.log(
+                    `📴 Call Ended -> ${to}`
+                );
+
+                io.to(to).emit(
+                    "callEnded"
+                );
+
+            } catch (err) {
+                console.log(
+                    "End Call Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // ICE CANDIDATE
+    // =========================
+
+    socket.on(
+        "iceCandidate",
+        ({ to, candidate }) => {
+
+            try {
+
+                if (!to || !candidate)
+                    return;
+
+                io.to(to).emit(
+                    "iceCandidate",
+                    {
+                        candidate,
+                        from: socket.userId
+                    }
+                );
+
+            } catch (err) {
+                console.log(
+                    "ICE Error:",
+                    err
+                );
+            }
+        }
+    );
+
+    // =========================
+    // DISCONNECT
+    // =========================
+
+    socket.on(
+        "disconnect",
+        (reason) => {
+
+            try {
+
+                console.log(
+                    "❌ Socket Disconnected:",
+                    socket.id,
+                    reason
+                );
+
+                if (socket.userId) {
+
+                    // only remove if same socket
+                    if (
+                        global.users[socket.userId] === socket.id
+                    ) {
+
+                        delete global.users[
+                            socket.userId
+                        ];
+
+                        io.emit(
+                            "onlineusers",
+                            Object.keys(global.users)
+                        );
+
+                        console.log(
+                            `🔴 User Offline: ${socket.userId}`
+                        );
+                    }
+                }
+
+            } catch (err) {
+                console.log(
+                    "Disconnect Error:",
+                    err
+                );
+            }
+        }
+    );
 });
 
-const networkIp = getNetworkIp();
-mongoose.connect(process.env.MONGO_URL)
-    .then(() => {
-        console.log("MongoDB connected");
-        server.listen(PORT, "0.0.0.0", () => {
-            console.log(`Server running on port ${PORT}`);
-            console.log(`Local Access: http://localhost:${PORT}`);
-            console.log(`Network Access: http://${networkIp}:${PORT}`);
-        });
-    })
-    .catch(err => console.log("MongoDB connection error:", err));
+// =========================
+// DATABASE
+// =========================
 
+mongoose.connect(process.env.MONGO_URL)
+
+    .then(() => {
+
+        console.log("✅ MongoDB Connected");
+
+        const networkIp =
+            getNetworkIp();
+
+        server.listen(
+            PORT,
+            "0.0.0.0",
+            () => {
+
+                console.log(
+                    `🚀 Server Running On ${PORT}`
+                );
+
+                console.log(
+                    `🌐 Local: http://localhost:${PORT}`
+                );
+
+                console.log(
+                    `📱 Network: http://${networkIp}:${PORT}`
+                );
+            }
+        );
+    })
+
+    .catch((err) => {
+
+        console.log(
+            "MongoDB Error:",
+            err
+        );
+    });
 
 
 
