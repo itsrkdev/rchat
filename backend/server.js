@@ -175,16 +175,33 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("endCall", ({ to }) => {
-        const receiverSocketId = global.users[to];
-        console.log(`📴 Call Ended for: ${to}`);
 
-        if (receiverSocketId) {
-            io.to(receiverSocketId).emit("callEnded");
-        } else {
-            io.to(to).emit("callEnded");
-        }
-    });
+    socket.on("endCall", ({ to }) => {
+    // 1. Pehle global object se target user ki socket ID nikaalo
+    const receiverSocketId = global.users[to];
+    console.log(`📴 Call Ended event received. Target User ID: ${to}`);
+
+    if (receiverSocketId) {
+        console.log(`Sending callEnded to Socket ID: ${receiverSocketId}`);
+        io.to(receiverSocketId).emit("callEnded");
+    } else {
+        console.log(`⚠️ User ${to} is offline or socket not found in global.users`);
+        
+        // Agar aapne har user ko uski Mongo ID ke naam se room me join karwaya hua hai (socket.join(userId)), 
+        // tabhi ye line kaam karegi, varna iski zaroorat nahi hai:
+        io.to(to).emit("callEnded"); 
+    }
+});
+    // socket.on("endCall", ({ to }) => {
+    //     const receiverSocketId = global.users[to];
+    //     console.log(`📴 Call Ended for: ${to}`);
+
+    //     if (receiverSocketId) {
+    //         io.to(receiverSocketId).emit("callEnded");
+    //     } else {
+    //         io.to(to).emit("callEnded");
+    //     }
+    // });
 
     // Backend: iceCandidate logic
    socket.on("iceCandidate", ({ to, candidate }) => {
