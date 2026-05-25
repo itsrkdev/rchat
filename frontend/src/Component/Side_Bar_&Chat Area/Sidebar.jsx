@@ -48,6 +48,8 @@ export default function Sidebar() {
     const peerRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    
+    const messagesEndRef = useRef(null);
 
 
     const token = localStorage.getItem("token");
@@ -71,6 +73,14 @@ export default function Sidebar() {
         document.body.classList.add(theme);
     }, [theme]);
 
+    //message aaye tab scrool hoga 
+useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+}, [messages]); // messages array update hote hi chalega
+
+
+
+    
 
     // archiveeeeeee
     const handleArchive = async (chatId) => {
@@ -1430,6 +1440,8 @@ const createPeer = (targetUserId) => {
                                         </div>
                                     </div>
                                 ))}
+                                {/* 🟢 YE WALI LINE MAP KE BAAD ADD KARNI HAI */}
+                             <div ref={messagesEndRef} />
                             </div>
 
                             <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
