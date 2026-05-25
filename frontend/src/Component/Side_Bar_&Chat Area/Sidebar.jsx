@@ -1,197 +1,219 @@
+✅ voice recording stable
+
+full code do sabka ek sath copy kr lu and paste line by line
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X, Moon, Sun, Archive } from "lucide-react";
+import {
+    Phone,
+    MessageSquareText,
+    CircleFadingPlus,
+    Users,
+    MessageCircleCode,
+    Settings,
+    MessageSquarePlus,
+    EllipsisVertical,
+    PhoneOff,
+    X,
+    Moon,
+    Sun,
+    Archive
+} from "lucide-react";
+
 import "./Sidebar.css";
-import io from "socket.io-client";
 import { useNavigate } from "react-router-dom";
+import { socket } from "./socket";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-const socket = io(backendUrl);
 
 export default function Sidebar() {
+
     const fileInputRef = useRef(null);
-    const [selectedImage, setSelectedImage] = useState(null);
-
-    const [archivedChats, setArchivedChats] = useState([]);
-    const [showArchived, setShowArchived] = useState(false);
-    const [users, setUsers] = useState([]);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedChat, setSelectedChat] = useState(null);
-    const [messages, setMessages] = useState([]);
-    const [inp, setInp] = useState("");
-    const [onlineUsers, setOnlineUsers] = useState([]);
-
-    const [lastMessages, setLastMessages] = useState({});
-    const [unreadMessages, setUnreadMessages] = useState({});
-    const [file, setFile] = useState(null);
-
-    const [recording, setRecording] = useState(false);
-    const [audioBlob, setAudioBlob] = useState(null);
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
-    const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-    const pendingCandidates = useRef([]);
-
-    const [isChatOpen, setIsChatOpen] = useState(false);
-
-    // --- VIDEO CALL STATES ---
-    const [incomingCall, setIncomingCall] = useState(null);
-    const [isCalling, setIsCalling] = useState(false);
-    const [localStream, setLocalStream] = useState(null);
-
-    // --- REFS ---
     const peerRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
+    const pendingCandidates = useRef([]);
+    const messagesEndRef = useRef(null);
+    const isJoinedRef = useRef(false);
 
-    const token = localStorage.getItem("token");
     const navigate = useNavigate();
 
-    const handleBackToList = () => {
-        setIsChatOpen(false);
-    };
+    const token = localStorage.getItem("token");
+
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [archivedChats, setArchivedChats] = useState([]);
+    const [showArchived, setShowArchived] = useState(false);
+
+    const [users, setUsers] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const [selectedChat, setSelectedChat] = useState(null);
+
+    const [messages, setMessages] = useState([]);
+
+    const [inp, setInp] = useState("");
+
+    const [onlineUsers, setOnlineUsers] = useState([]);
+
+    const [lastMessages, setLastMessages] = useState({});
+
+    const [unreadMessages, setUnreadMessages] = useState({});
+
+    const [recording, setRecording] = useState(false);
+
+    const [audioBlob, setAudioBlob] = useState(null);
+
+    const [theme, setTheme] = useState(
+        localStorage.getItem("theme") || "light"
+    );
+
+    const [isChatOpen, setIsChatOpen] = useState(false);
+
+    const [incomingCall, setIncomingCall] = useState(null);
+
+    const [isCalling, setIsCalling] = useState(false);
+
+    const [localStream, setLocalStream] = useState(null);
+
+    // =========================
+    // THEME
+    // =========================
 
     const toggleTheme = () => {
         const newTheme = theme === "light" ? "dark" : "light";
+
         setTheme(newTheme);
+
         localStorage.setItem("theme", newTheme);
     };
 
     useEffect(() => {
         document.body.classList.remove("light", "dark");
+
         document.body.classList.add(theme);
     }, [theme]);
 
-    const handleArchive = async (chatId) => {
-        try {
-            const res = await fetch(`${backendUrl}/api/users/archive-chat`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ chatId })
-            });
+    // =========================
+    // AUTO SCROLL
+    // =========================
 
-            const data = await res.json();
-            setArchivedChats(data.archivedChats);
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    const handleLogout = () => {
-        socket.disconnect();
-        localStorage.removeItem("token");
-        navigate("/", { replace: true });
-    };
-
-    const openModal = (fileUrl) => {
-        setSelectedImage(`${backendUrl}${fileUrl}`);
-    };
-
-    // Load current user and all other users
     useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth"
+        });
+    }, [messages]);
+
+    // =========================
+    // LOAD USERS
+    // =========================
+
+    useEffect(() => {
+
         async function loadUsers() {
-            if (!token) return;
 
-            const resUser = await fetch(`${backendUrl}/api/users/loguser`, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const user = await resUser.json();
-            setCurrentUser(user);
-            setArchivedChats(user.archivedChats || []);
+            try {
 
-            socket.emit("join", user._id);
+                if (!token) return;
 
-            const resAll = await fetch(`${backendUrl}/api/users`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const allUsers = await resAll.json();
-            setUsers(allUsers.filter(u => u._id !== user._id));
+                const resUser = await fetch(
+                    `${backendUrl}/api/users/loguser`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!resUser.ok) {
+                    throw new Error("Failed to fetch current user");
+                }
+
+                const user = await resUser.json();
+
+                setCurrentUser(user);
+
+                setArchivedChats(user.archivedChats || []);
+
+                const resAll = await fetch(
+                    `${backendUrl}/api/users`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+
+                if (!resAll.ok) {
+                    throw new Error("Failed to fetch users");
+                }
+
+                const allUsers = await resAll.json();
+
+                setUsers(
+                    allUsers.filter(
+                        u => u._id !== user._id
+                    )
+                );
+
+            } catch (err) {
+                console.error(err);
+            }
         }
+
         loadUsers();
+
     }, [token]);
 
-    // Listen for online users
-  // 🔴 Component ke andar sabse upar ek Ref banao (Agar pehle se nahi hai)
-const isJoinedRef = useRef(false);
+    // =========================
+    // SOCKET JOIN
+    // =========================
 
-useEffect(() => {
-    if (!socket || !currentUser?._id) return;
+    useEffect(() => {
 
-    socket.off("onlineusers");
-    socket.off("connect");
+        if (!socket || !currentUser?._id) return;
 
-    // 1. Listeners lagao
-    socket.on("onlineusers", (users) => {
-        // Validation: Baar-baar state tabhi update karo jab users ki sankhya sach me alag ho
-        console.log("Online users from server:", users);
-        setOnlineUsers(users);
-    });
-
-    socket.on("connect", () => {
-        // Agar connect event aaya, tabhi dobara join bhejo
-        console.log("Socket connected event fired. Sending join...");
-        socket.emit("join", currentUser._id);
-        isJoinedRef.current = true;
-    });
-
-    // 2. 🔴 BRAHMASTRA CHECK: Agar socket pehle se connected hai aur humne IS RENDER ME join nahi bheja hai
-    if (socket.connected && !isJoinedRef.current) {
-        console.log("Sending join safely for the first time...");
-        socket.emit("join", currentUser._id);
-        isJoinedRef.current = true; // Isse ye dobara re-render par nahi chalega
-    }
-
-    return () => {
         socket.off("onlineusers");
         socket.off("connect");
-    };
-}, [socket, currentUser?._id]); // Sirf tab chalega jab id sach me badle (logout/login par)
 
+        socket.on("onlineusers", (users) => {
+            setOnlineUsers(users);
+        });
 
-    
+        socket.on("connect", () => {
 
-
-
-
-    
-    // useEffect(() => {
-    //     const handleOnlineUsers = (users) => {
-    //         console.log("Online users from server:", users);
-    //         setOnlineUsers(users);
-    //     };
-
-    //     socket.on("onlineusers", handleOnlineUsers);
-
-    //     socket.on("connect", () => {
-    //         if (currentUser?._id) {
-    //             socket.emit("join", currentUser._id);
-    //         }
-    //     });
-
-    //     return () => {
-    //         socket.off("onlineusers", handleOnlineUsers);
-    //         socket.off("connect");
-    //     };
-    // }, [currentUser]);
-
-    useEffect(() => {
-        if (currentUser && currentUser._id) {
-            if (socket.disconnected) {
-                socket.connect();
-            }
-            console.log("Sending join for:", currentUser._id);
             socket.emit("join", currentUser._id);
-        }
-    }, [currentUser]);
 
-    // Listen for incoming messages
+            isJoinedRef.current = true;
+        });
+
+        if (socket.connected && !isJoinedRef.current) {
+
+            socket.emit("join", currentUser._id);
+
+            isJoinedRef.current = true;
+        }
+
+        return () => {
+            socket.off("onlineusers");
+            socket.off("connect");
+        };
+
+    }, [currentUser?._id]);
+
+    // =========================
+    // RECEIVE MESSAGE
+    // =========================
+
     useEffect(() => {
+
         const handleReceive = (data) => {
-            const previewText = data.message ? data.message : (data.file ? "📎 File" : "New message");
+
+            const previewText =
+                data.message ||
+                (data.file ? "📎 File" : "New message");
 
             setLastMessages(prev => ({
                 ...prev,
@@ -199,875 +221,824 @@ useEffect(() => {
             }));
 
             setUsers(prevUsers => {
-                const userIndex = prevUsers.findIndex(u => u._id === data.sender);
+
+                const userIndex = prevUsers.findIndex(
+                    u => u._id === data.sender
+                );
+
                 if (userIndex === -1) return prevUsers;
 
                 const updatedUsers = [...prevUsers];
-                const [chatUser] = updatedUsers.splice(userIndex, 1);
+
+                const [chatUser] =
+                    updatedUsers.splice(userIndex, 1);
+
                 updatedUsers.unshift(chatUser);
+
                 return updatedUsers;
             });
 
-            if (selectedChat?._id === data.sender) {
-                setMessages(prev => [...prev, { ...data, type: "received", createdAt: new Date() }]);
-            } else {
-                setUnreadMessages(prev => ({ ...prev, [data.sender]: true }));
+            setMessages(prev => {
+
+                if (selectedChat?._id === data.sender) {
+
+                    return [
+                        ...prev,
+                        {
+                            ...data,
+                            type: "received",
+                            createdAt: new Date()
+                        }
+                    ];
+                }
+
+                return prev;
+            });
+
+            if (selectedChat?._id !== data.sender) {
+
+                setUnreadMessages(prev => ({
+                    ...prev,
+                    [data.sender]: true
+                }));
             }
         };
 
-        socket.on("receiveMessage", handleReceive);
-        return () => socket.off("receiveMessage", handleReceive);
-    }, [selectedChat]);
+        socket.off("receiveMessage");
 
-    // Load chat messages when selecting a chat
+        socket.on("receiveMessage", handleReceive);
+
+        return () => {
+            socket.off("receiveMessage", handleReceive);
+        };
+
+    }, [selectedChat?._id]);
+
+    // =========================
+    // LOAD MESSAGES
+    // =========================
+
     useEffect(() => {
+
         if (!selectedChat || !currentUser) return;
 
         async function loadMessages() {
-            const res = await fetch(`${backendUrl}/api/chats/${selectedChat._id}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
 
-            const data = await res.json();
-            const filteredMessages = data.filter(m => !m.deletedBy.includes(currentUser._id));
+            try {
 
-            setMessages(
-                filteredMessages.map(m => ({
-                    _id: m._id,
-                    sender: m.sender,
-                    message: m.message,
-                    file: m.file,
-                    createdAt: m.createdAt,
-                    type: m.sender === currentUser._id ? "sent" : "received"
-                }))
-            );
+                const res = await fetch(
+                    `${backendUrl}/api/chats/${selectedChat._id}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
 
-            const lastMsgMap = {};
-            filteredMessages.forEach(msg => {
-                const chatId = msg.sender === currentUser._id ? msg.receiver : msg.sender;
-                lastMsgMap[chatId] = msg.message || (msg.file ? "📎 File" : "");
-            });
+                if (!res.ok) {
+                    throw new Error("Failed to fetch chats");
+                }
 
-            setLastMessages(prev => ({
-                ...prev,
-                ...lastMsgMap
-            }));
+                const data = await res.json();
+
+                const filteredMessages = data.filter(
+                    m => !m.deletedBy.includes(currentUser._id)
+                );
+
+                setMessages(
+                    filteredMessages.map(m => ({
+                        _id: m._id,
+                        sender: m.sender,
+                        message: m.message,
+                        file: m.file,
+                        createdAt: m.createdAt,
+                        type:
+                            m.sender === currentUser._id
+                                ? "sent"
+                                : "received"
+                    }))
+                );
+
+            } catch (err) {
+                console.error(err);
+            }
         }
 
         loadMessages();
+
     }, [selectedChat, currentUser, token]);
 
-    // Send message
+    // =========================
+    // SEND MESSAGE
+    // =========================
+
     const sendMsg = async () => {
-        const filesToSend = fileInputRef.current?.files;
-        if (!selectedChat || (!inp.trim() && (!filesToSend || filesToSend.length === 0))) return;
 
         try {
+
+            const filesToSend =
+                fileInputRef.current?.files;
+
+            if (
+                !selectedChat ||
+                (
+                    !inp.trim() &&
+                    (!filesToSend || filesToSend.length === 0)
+                )
+            ) return;
+
             if (filesToSend && filesToSend.length > 0) {
+
                 const filesArray = Array.from(filesToSend);
 
                 for (const singleFile of filesArray) {
+
                     const formData = new FormData();
-                    formData.append("sender", currentUser._id);
-                    formData.append("receiver", selectedChat._id);
-                    formData.append("message", inp || "");
-                    formData.append("file", singleFile);
 
-                    const res = await fetch(`${backendUrl}/api/chats`, {
-                        method: "POST",
-                        headers: { Authorization: `Bearer ${token}` },
-                        body: formData,
-                    });
+                    formData.append(
+                        "sender",
+                        currentUser._id
+                    );
 
-                    if (res.ok) {
-                        const savedMsg = await res.json();
-                        socket.emit("privateMessage", savedMsg);
-                        setMessages(prev => [...prev, { ...savedMsg, type: "sent" }]);
+                    formData.append(
+                        "receiver",
+                        selectedChat._id
+                    );
+
+                    formData.append(
+                        "message",
+                        inp || ""
+                    );
+
+                    formData.append(
+                        "file",
+                        singleFile
+                    );
+
+                    const res = await fetch(
+                        `${backendUrl}/api/chats`,
+                        {
+                            method: "POST",
+                            headers: {
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: formData
+                        }
+                    );
+
+                    if (!res.ok) {
+                        throw new Error("Failed to send");
                     }
+
+                    const savedMsg = await res.json();
+
+                    socket.emit(
+                        "privateMessage",
+                        savedMsg
+                    );
+
+                    setMessages(prev => [
+                        ...prev,
+                        {
+                            ...savedMsg,
+                            type: "sent"
+                        }
+                    ]);
                 }
+
             } else {
+
                 const formData = new FormData();
-                formData.append("sender", currentUser._id);
-                formData.append("receiver", selectedChat._id);
-                formData.append("message", inp);
 
-                const res = await fetch(`${backendUrl}/api/chats`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
-                });
+                formData.append(
+                    "sender",
+                    currentUser._id
+                );
 
-                if (!res.ok) throw new Error("Failed to send message");
+                formData.append(
+                    "receiver",
+                    selectedChat._id
+                );
+
+                formData.append(
+                    "message",
+                    inp
+                );
+
+                const res = await fetch(
+                    `${backendUrl}/api/chats`,
+                    {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        },
+                        body: formData
+                    }
+                );
+
+                if (!res.ok) {
+                    throw new Error("Failed");
+                }
+
                 const savedMsg = await res.json();
 
-                socket.emit("privateMessage", savedMsg);
-                setMessages(prev => [...prev, { ...savedMsg, type: "sent" }]);
+                socket.emit(
+                    "privateMessage",
+                    savedMsg
+                );
+
+                setMessages(prev => [
+                    ...prev,
+                    {
+                        ...savedMsg,
+                        type: "sent"
+                    }
+                ]);
             }
 
             setLastMessages(prev => ({
                 ...prev,
-                [selectedChat._id]: inp || "📎 File",
+                [selectedChat._id]:
+                    inp || "📎 File"
             }));
 
             setInp("");
-            setFile(null);
-            if (fileInputRef.current) fileInputRef.current.value = "";
 
-            setUsers(prevUsers => {
-                const idx = prevUsers.findIndex(u => u._id === selectedChat._id);
-                if (idx === -1) return prevUsers;
-                const updated = [...prevUsers];
-                const [chatUser] = updated.splice(idx, 1);
-                updated.unshift(chatUser);
-                return updated;
-            });
-
-        } catch (err) {
-            console.error("Send message error:", err);
-            alert("Failed to send message");
-        }
-    };
-
-    // Multiple Files Handler
-    const sendMultipleFiles = async (files) => {
-        if (!selectedChat || files.length === 0) return;
-
-        for (const singleFile of files) {
-            try {
-                const formData = new FormData();
-                formData.append("sender", currentUser._id);
-                formData.append("receiver", selectedChat._id);
-                formData.append("message", "");
-                formData.append("file", singleFile);
-
-                const res = await fetch(`${backendUrl}/api/chats`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` },
-                    body: formData,
-                });
-
-                if (res.ok) {
-                    const savedMsg = await res.json();
-                    socket.emit("privateMessage", savedMsg);
-
-                    setMessages(prev => [...prev, { ...savedMsg, type: "sent" }]);
-                    setLastMessages(prev => ({
-                        ...prev,
-                        [selectedChat._id]: "📎 Photo/File",
-                    }));
-                }
-            } catch (err) {
-                console.error("Error sending one of the files:", err);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
             }
-        }
-        if (fileInputRef.current) fileInputRef.current.value = "";
-    };
 
-    const handleDownload = async (fileUrl, fileName) => {
-        try {
-            const response = await fetch(fileUrl);
-            if (!response.ok) throw new Error("File download failed");
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = fileName || "file";
-            document.body.appendChild(a);
-            a.click();
-
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } catch (err) {
-            console.error("Download Error:", err);
-            alert("Could not download file. Make sure the server is running.");
-        }
-    };
-
-    // Delete message function
-    const deleteMessage = async (id, receiverId = selectedChat?._id) => {
-        if (!receiverId) return;
-        try {
-            await fetch(`${backendUrl}/api/chats/${id}`, {
-                method: "DELETE",
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            setMessages(prevMessages => {
-                const updatedMessages = prevMessages.filter(m => m._id !== id);
-
-                setLastMessages(prevLast => {
-                    const updatedLast = { ...prevLast };
-                    const lastMsg = updatedMessages.slice(-1)[0];
-                    updatedLast[receiverId] = lastMsg ? lastMsg.message : "Start chatting..";
-                    return updatedLast;
-                });
-
-                return updatedMessages;
-            });
-
-            socket.emit("deleteMessage", {
-                messageId: id,
-                senderId: currentUser._id,
-                receiverId
-            });
-
-            alert("Message deleted successfully!");
         } catch (err) {
             console.error(err);
         }
     };
 
-    // Receiver-side listener for deleted messages
-    useEffect(() => {
-        const handleDeleted = ({ messageId, senderId }) => {
-            setMessages(prevMessages => {
-                const updatedMessages = prevMessages.filter(m => m._id !== messageId);
+    // =========================
+    // VOICE RECORDING
+    // =========================
 
-                setLastMessages(prevLast => {
-                    const updatedLast = { ...prevLast };
-                    const lastMsg = updatedMessages.slice(-1)[0];
-                    updatedLast[senderId] = lastMsg ? lastMsg.message : "Start chatting No msg...";
-                    return updatedLast;
-                });
-
-                return updatedMessages;
-            });
-        };
-
-        socket.on("messageDeleted", handleDeleted);
-        return () => socket.off("messageDeleted", handleDeleted);
-    }, []);
-
-    useEffect(() => {
-        async function fetchCurrentUser() {
-            try {
-                const res = await fetch(`${backendUrl}/api/users/loguser`, {
-                    method: "POST",
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                const user = await res.json();
-                setCurrentUser(user);
-            } catch (err) {
-                console.error("Error fetching logged-in user:", err);
-            }
-        }
-        fetchCurrentUser();
-    }, [token]);
-
-    const handleAvatarChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append("avatar", file);
-
-        try {
-            const res = await fetch(`${backendUrl}/api/users/upload-avatar`, {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`
-                },
-                body: formData
-            });
-
-            if (!res.ok) throw new Error("Failed to update avatar");
-
-            const data = await res.json();
-            setCurrentUser(prev => ({ ...prev, avatar: data.avatar }));
-            alert("Avatar updated successfully!");
-        } catch (err) {
-            console.error("Failed to update avatar:", err);
-            alert("Failed to update avatar");
-        }
-    };
-
-    // Voice Recording functions
     const startRecording = async () => {
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
-            mediaRecorderRef.current = mediaRecorder;
+
+            const stream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+
+            const mediaRecorder =
+                new MediaRecorder(stream);
+
+            mediaRecorderRef.current =
+                mediaRecorder;
+
             audioChunksRef.current = [];
 
-            mediaRecorder.ondataavailable = (event) => {
-                audioChunksRef.current.push(event.data);
-            };
+            mediaRecorder.ondataavailable =
+                (event) => {
+                    audioChunksRef.current.push(
+                        event.data
+                    );
+                };
 
             mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-                setAudioBlob(audioBlob);
+
+                const blob = new Blob(
+                    audioChunksRef.current,
+                    {
+                        type: "audio/webm"
+                    }
+                );
+
+                setAudioBlob(blob);
             };
 
             mediaRecorder.start();
+
             setRecording(true);
+
         } catch (err) {
-            console.error("Mic error:", err);
+            console.error(err);
         }
     };
 
     const stopRecording = () => {
-        if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+
+        if (mediaRecorderRef.current) {
+
+            mediaRecorderRef.current.stop();
+
+            mediaRecorderRef.current.stream
+                .getTracks()
+                .forEach(track => track.stop());
+        }
+
         setRecording(false);
     };
 
     const sendVoice = async () => {
-        if (!audioBlob || !selectedChat) return;
 
-        const formData = new FormData();
-        formData.append("sender", currentUser._id);
-        formData.append("receiver", selectedChat._id);
-        formData.append("message", "");
-        formData.append("file", audioBlob, "voice-message.webm");
+        try {
 
-        const res = await fetch(`${backendUrl}/api/chats`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-            body: formData
+            if (!audioBlob || !selectedChat) return;
+
+            const formData = new FormData();
+
+            formData.append(
+                "sender",
+                currentUser._id
+            );
+
+            formData.append(
+                "receiver",
+                selectedChat._id
+            );
+
+            formData.append(
+                "message",
+                ""
+            );
+
+            formData.append(
+                "file",
+                audioBlob,
+                "voice-message.webm"
+            );
+
+            const res = await fetch(
+                `${backendUrl}/api/chats`,
+                {
+                    method: "POST",
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: formData
+                }
+            );
+
+            if (!res.ok) {
+                throw new Error("Voice send failed");
+            }
+
+            const savedMsg = await res.json();
+
+            socket.emit(
+                "privateMessage",
+                savedMsg
+            );
+
+            setMessages(prev => [
+                ...prev,
+                {
+                    ...savedMsg,
+                    type: "sent"
+                }
+            ]);
+
+            setAudioBlob(null);
+
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    // =========================
+    // WEBRTC
+    // =========================
+
+    const initializeMedia = async () => {
+
+        try {
+
+            const stream =
+                await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+
+            setLocalStream(stream);
+
+            if (localVideoRef.current) {
+
+                localVideoRef.current.srcObject =
+                    stream;
+
+                localVideoRef.current.play()
+                    .catch(() => { });
+            }
+
+            return stream;
+
+        } catch (err) {
+
+            console.error(err);
+
+            alert(
+                "Camera/Mic permission denied"
+            );
+
+            return null;
+        }
+    };
+
+    const createPeer = (
+        targetUserId,
+        stream
+    ) => {
+
+        const peer = new RTCPeerConnection({
+            iceServers: [
+                {
+                    urls: "stun:stun.l.google.com:19302"
+                }
+            ]
         });
 
-        const savedMsg = await res.json();
-        socket.emit("privateMessage", savedMsg);
-        setMessages(prev => [...prev, { ...savedMsg, type: "sent" }]);
-        setAudioBlob(null);
-    };
+        peer.onicecandidate = (event) => {
 
-    const resetCallStates = () => {
-        if (peerRef.current) {
-            peerRef.current.close();
-            peerRef.current = null;
-        }
-        setIsCalling(false);
-        setIncomingCall(null);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    };
+            if (event.candidate) {
 
-    // WebRTC Socket Call Handlers
-
-useEffect(() => {
-    if (!socket || !currentUser?._id) return;
-
-    // --- Puraane saare listeners ko safety ke liye pehle clear karo ---
-    socket.off("incomingCall");
-    socket.off("callAccepted");
-    socket.off("callRejected");
-    socket.off("callEnded");
-    socket.off("iceCandidate");
-
-    // 1. Incoming Call Listener
-    socket.on("incomingCall", (data) => {
-        const myId = String(currentUser?._id);
-        const targetId = String(data.to);
-
-        console.log("Call received for ID:", targetId);
-        console.log("My current ID is:", myId);
-
-        if (!myId || targetId !== myId) {
-            console.log("🚫 Not my call. Ignoring...");
-            return; 
-        }
-
-        console.log("✅ My call! Showing modal...");
-        setIncomingCall(data);
-    });
-
-    // 2. Call Accepted Listener
-    socket.on("callAccepted", async ({ answer }) => {
-        console.log("Call Accepted by remote");
-        if (peerRef.current) {
-            try {
-                // Agar pehle se remote description set na ho tabhi set karein
-                if (!peerRef.current.remoteDescription) {
-                    await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-                    
-                    // Process any queued pending candidates
-                    if (pendingCandidates.current && pendingCandidates.current.length > 0) {
-                        for (const candidate of pendingCandidates.current) {
-                            await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-                        }
-                        pendingCandidates.current = []; // clear queue
-                    }
-                }
-            } catch (error) {
-                console.error("Error setting remote description on callAccepted:", error);
+                socket.emit("iceCandidate", {
+                    to: targetUserId,
+                    candidate: event.candidate
+                });
             }
-        }
-    });
+        };
 
-    // 3. Call Rejected Listener
-    socket.on("callRejected", () => {
-        console.log("Call was rejected");
-        alert("Call was rejected");
-        // Dono functions ko safety se check karke run karein
-        if (typeof endCall === "function") endCall();
-        if (typeof resetCallStates === "function") resetCallStates();
-    });
+        peer.ontrack = (event) => {
 
-    // 4. Remote User Ended Call Listener (FIXED)
-    socket.on("callEnded", () => {
-        console.log("Remote user ended the call - Triggering UI Cleanup");
-        
-        // Pehle WebRTC streams aur connection band karo taki loop na bane
-        if (peerRef.current) {
-            peerRef.current.close();
-            peerRef.current = null;
-        }
+            if (remoteVideoRef.current) {
 
-        // UI clean karo
-        if (typeof cleanupCallUI === "function") {
-            cleanupCallUI();
-        } else if (typeof resetCallStates === "function") {
-            resetCallStates();
-        }
-        
-        // State levels manual safety reset
-        setIsCalling(false);
-        setIncomingCall(null);
-    });
-
-    // 5. ICE Candidate Listener
-    socket.on("iceCandidate", async (data) => {
-        try {
-            const actualCandidate = data.candidate;
-            if (!actualCandidate) return;
-
-            if (peerRef.current && peerRef.current.remoteDescription && peerRef.current.remoteDescription.type) {
-                await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
-            } else {
-                if (pendingCandidates.current) {
-                    pendingCandidates.current.push(actualCandidate);
-                }
+                remoteVideoRef.current.srcObject =
+                    event.streams[0];
             }
-        } catch (err) {
-            console.error("ICE Candidate adding error:", err);
-        }
-    });
+        };
 
-    // --- CLEANUP: Component unmount ya socket change hone par listeners remove honge ---
-    return () => {
-        socket.off("incomingCall");
-        socket.off("callAccepted");
-        socket.off("callRejected");
-        socket.off("callEnded"); // <-- Ye missing tha, isliye call cut nahi ho raha tha!
-        socket.off("iceCandidate");
+        if (stream) {
+
+            stream.getTracks().forEach(track => {
+                peer.addTrack(track, stream);
+            });
+        }
+
+        return peer;
     };
-}, [socket, currentUser?._id]); // Sub-property ID pass ki hai taaki poore object par loop na chale
-
-
-    
-    // useEffect(() => {
-    //     if (!socket || !currentUser?._id) return;
-
-    //     socket.off("incomingCall");
-
-    //     socket.on("incomingCall", (data) => {
-    //         const myId = String(currentUser?._id);
-    //         const targetId = String(data.to);
-
-    //         if (!myId || targetId !== myId) {
-    //             return;
-    //         }
-    //         setIncomingCall(data);
-    //     });
-
-    //     socket.on("callAccepted", async ({ answer }) => {
-    //         if (peerRef.current) {
-    //             await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-    //         }
-    //     });
-
-    //     socket.on("callRejected", () => {
-    //         alert("Call was rejected");
-    //         cleanupCallUI();
-    //     });
-
-    //     socket.on("callEnded", () => {
-    //         cleanupCallUI();
-    //     });
-
-    //     socket.on("iceCandidate", async (data) => {
-    //         try {
-    //             const actualCandidate = data.candidate;
-    //             if (!actualCandidate) return;
-
-    //             if (peerRef.current && peerRef.current.remoteDescription) {
-    //                 await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
-    //             } else {
-    //                 pendingCandidates.current.push(actualCandidate);
-    //             }
-    //         } catch (err) {
-    //             console.error("ICE Candidate adding error:", err);
-    //         }
-    //     });
-
-    //     return () => {
-    //         socket.off("incomingCall");
-    //         socket.off("callAccepted");
-    //         socket.off("callRejected");
-    //         socket.off("callEnded");
-    //         socket.off("iceCandidate");
-    //     };
-    // }, [socket, currentUser]);
-
-    useEffect(() => {
-        if (socket && currentUser?._id) {
-            socket.emit("join", currentUser._id);
-        }
-    }, [socket, currentUser?._id]);
 
     const cleanupCallUI = () => {
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+
+        if (localStream) {
+
+            localStream
+                .getTracks()
+                .forEach(track => track.stop());
+        }
+
+        if (localVideoRef.current) {
             localVideoRef.current.srcObject = null;
         }
+
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = null;
+        }
+
         if (peerRef.current) {
+
+            peerRef.current.ontrack = null;
+
+            peerRef.current.onicecandidate = null;
+
             peerRef.current.close();
+
             peerRef.current = null;
         }
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-            setLocalStream(null);
-        }
+
+        setLocalStream(null);
+
         setIsCalling(false);
+
         setIncomingCall(null);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
-
-    // ✅ FIX 2: createPeer - localStream state mat use karo, stream directly pass karo
-const createPeer = (targetUserId, stream) => {  // <-- stream parameter add kiya
-    const peer = new RTCPeerConnection({
-        iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
-            {
-                urls: [
-                    "turn:global.metered.ca:80",
-                    "turn:global.metered.ca:443",
-                    "turns:global.metered.ca:443?transport=tcp"
-                ],
-                username: "3725ed443897b03f47679e29",
-                credential: "OenRfU4K9Mb+Objg"
-            }
-        ]
-    });
-
-    peer.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
-        }
-    };
-
-    peer.ontrack = (event) => {
-        console.log("Remote track received:", event.track.kind);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
-            remoteVideoRef.current.play().catch(err => 
-                console.log("Remote play handled:", err.message)
-            );
-        }
-    };
-
-    // ✅ FIX: localStream state nahi, directly parameter wala stream use karo
-    if (stream) {
-        stream.getTracks().forEach(track => {
-            peer.addTrack(track, stream);
-        });
-    }
-
-    return peer;
-};
-
-//   const createPeer = (targetUserId) => {
-//     const peer = new RTCPeerConnection({
-//         iceServers: [
-//             { urls: "stun:stun.l.google.com:19302" },
-//             {
-//                 urls: [
-//                     "turn:global.metered.ca:80",
-//                     "turn:global.metered.ca:443",
-//                     "turns:global.metered.ca:443?transport=tcp"
-//                 ],
-//                 username: "3725ed443897b03f47679e29",
-//                 credential: "OenRfU4K9Mb+Objg"
-//             }
-//         ]
-//     });
-
-//     peer.onicecandidate = (event) => {
-//         if (event.candidate) {
-//             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
-//         }
-//     };
-
-//     // 🔴 FIXED: Remote track safety check add kiya taaki video crash na ho
-//     peer.ontrack = (event) => {
-//         console.log("🎵 Remote track received:", event.track.kind);
-        
-//         if (remoteVideoRef.current) {
-//             // Check 1: Agar pehle se wahi same stream lagi hui hai, toh dubara load mat karo
-//             if (remoteVideoRef.current.srcObject === event.streams[0]) {
-//                 console.log("Stream already attached, skipping duplicate load.");
-//                 return; 
-//             }
-
-//             // Pehli baar stream assign karo
-//             remoteVideoRef.current.srcObject = event.streams[0];
-
-//             // Check 2: Safe async wrapper play karne ke liye taaki AbortError handle ho jaye
-//             const playRemoteVideo = async () => {
-//                 try {
-//                     await remoteVideoRef.current.play();
-//                     console.log("🎥 Remote video playing perfectly!");
-//                 } catch (err) {
-//                     // Is block ki wajah se browser screen freeze ya crash nahi karega
-//                     console.log("Play request handled safely:", err.message);
-//                 }
-//             };
-
-//             playRemoteVideo();
-//         }
-//     };
-
-//     if (localStream) {
-//         localStream.getTracks().forEach(track => {
-//             peer.addTrack(track, localStream);
-//         });
-//     }
-
-//     return peer;
-// };
-    
-// ✅ FIX 1: initializeMedia - stream return karo aur ref set karo
-const initializeMedia = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-        setLocalStream(stream);
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-            localVideoRef.current.play().catch(() => {});
-        }
-        return stream;
-    } catch (err) {
-        console.error("Media Error:", err);
-        alert("Camera/Mic access denied: " + err.message);
-        return null;
-    }
-};
-    // const initializeMedia = async () => {
-    //     try {
-    //         const stream = await navigator.mediaDevices.getUserMedia({
-    //             video: true,
-    //             audio: true
-    //         });
-    //         setLocalStream(stream);
-    //         if (localVideoRef.current) {
-    //             localVideoRef.current.srcObject = stream;
-    //         }
-    //         return stream;
-    //     } catch (err) {
-    //         console.error("Media Error:", err);
-    //         return null;
-    //     }
-    // };
 
     const startCall = async () => {
-    if (!selectedChat?._id || !currentUser?._id) return;
 
-    const stream = await initializeMedia();
-    if (!stream) return;
+        try {
 
-    setIsCalling(true);
+            if (!selectedChat?._id) return;
 
-    // ✅ stream directly pass karo, state use mat karo
-    const peer = createPeer(selectedChat._id, stream);
-    peerRef.current = peer;
+            const stream =
+                await initializeMedia();
 
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
+            if (!stream) return;
 
-    socket.emit("callUser", {
-        to: selectedChat._id,
-        from: currentUser._id,
-        name: currentUser.name,
-        offer: offer
-    });
-};
+            setIsCalling(true);
 
-    // const startCall = async () => {
-    //     const stream = await initializeMedia();
-    //     if (!stream) return alert("Camera access denied");
+            const peer =
+                createPeer(
+                    selectedChat._id,
+                    stream
+                );
 
-    //     const peer = createPeer(selectedChat._id);
-    //     peerRef.current = peer;
-    //     stream.getTracks().forEach(track => peer.addTrack(track, stream));
+            peerRef.current = peer;
 
-    //     if (!selectedChat?._id || !currentUser?._id) return;
-    //     setIsCalling(true);
+            const offer =
+                await peer.createOffer();
 
-    //     const offer = await peer.createOffer();
-    //     await peer.setLocalDescription(offer);
+            await peer.setLocalDescription(
+                offer
+            );
 
-    //     socket.emit("callUser", {
-    //         to: selectedChat._id,
-    //         from: currentUser._id,
-    //         name: currentUser.name,
-    //         offer: offer
-    //     });
-    // };
+            socket.emit("callUser", {
+                to: selectedChat._id,
+                from: currentUser._id,
+                name: currentUser.name,
+                offer
+            });
 
-// ✅ FIX 4: acceptCall - same fix, stream directly pass karo
-const acceptCall = async () => {
-    if (!incomingCall) return;
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
-    try {
-        const stream = await initializeMedia();
-        if (!stream) return;
+    const acceptCall = async () => {
 
-        setIsCalling(true);
+        try {
 
-        // ✅ stream directly pass karo
-        const peer = createPeer(incomingCall.from, stream);
-        peerRef.current = peer;
+            if (!incomingCall) return;
 
-        await peer.setRemoteDescription(
-            new RTCSessionDescription(incomingCall.offer)
-        );
+            const stream =
+                await initializeMedia();
 
-        // Pending ICE candidates flush karo
-        while (pendingCandidates.current.length > 0) {
-            const cand = pendingCandidates.current.shift();
-            if (cand) {
-                try {
-                    await peer.addIceCandidate(new RTCIceCandidate(cand));
-                } catch (iceErr) {
-                    console.error("ICE candidate error:", iceErr);
+            if (!stream) return;
+
+            setIsCalling(true);
+
+            const peer =
+                createPeer(
+                    incomingCall.from,
+                    stream
+                );
+
+            peerRef.current = peer;
+
+            await peer.setRemoteDescription(
+                new RTCSessionDescription(
+                    incomingCall.offer
+                )
+            );
+
+            while (
+                pendingCandidates.current.length > 0
+            ) {
+
+                const cand =
+                    pendingCandidates.current.shift();
+
+                if (cand) {
+
+                    await peer.addIceCandidate(
+                        new RTCIceCandidate(cand)
+                    );
                 }
             }
+
+            const answer =
+                await peer.createAnswer();
+
+            await peer.setLocalDescription(
+                answer
+            );
+
+            socket.emit("acceptCall", {
+                to: incomingCall.from,
+                answer
+            });
+
+            setIncomingCall(null);
+
+        } catch (err) {
+            console.error(err);
         }
-
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
-
-        socket.emit("acceptCall", { to: incomingCall.from, answer });
-        setIncomingCall(null);
-
-    } catch (err) {
-        console.error("Accept call error:", err);
-        alert("Call accept karne mein error: " + err.message);
-    }
-};
-    
-    // const acceptCall = async () => {
-    //     if (!incomingCall) return;
-
-    //     try {
-    //         const stream = await initializeMedia();
-    //         if (!stream) return alert("Camera/Mic access required");
-
-    //         setIsCalling(true);
-
-    //         const peer = createPeer(incomingCall.from);
-    //         peerRef.current = peer;
-
-    //         stream.getTracks().forEach(track => {
-    //             peer.addTrack(track, stream);
-    //         });
-
-    //         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-
-    //         while (pendingCandidates.current.length > 0) {
-    //             const cand = pendingCandidates.current.shift();
-    //             if (cand) {
-    //                 try {
-    //                     await peer.addIceCandidate(new RTCIceCandidate(cand));
-    //                 } catch (iceErr) {
-    //                     console.error("Error adding queued ICE candidate:", iceErr);
-    //                 }
-    //             }
-    //         }
-
-    //         const answer = await peer.createAnswer();
-    //         await peer.setLocalDescription(answer);
-
-    //         socket.emit("acceptCall", { to: incomingCall.from, answer });
-    //         setIncomingCall(null);
-
-    //     } catch (err) {
-    //         console.error("Error in acceptCall flow:", err);
-    //         alert("Call accept karne me koi galti hui h.");
-    //     }
-    // };
+    };
 
     const rejectCall = () => {
+
         if (!incomingCall) return;
-        socket.emit("callRejected", { to: incomingCall.from });
+
+        socket.emit("callRejected", {
+            to: incomingCall.from
+        });
+
         setIncomingCall(null);
     };
 
     const endCall = () => {
-    // 1. Target ID dhoondo (Call karne wala ya receive karne wala)
-    const targetId = selectedChat?._id || incomingCall?.from;
-    
-    if (targetId && socket) {
-        // Server ko batao ki call kaat di hai taaki samne wale ka bhi cut ho jaye
-        socket.emit("endCall", { to: targetId });
-    }
 
-    // 2. 🔴 CAMERA AUR MIC KE TRACKS KO STOP KARO
-    // Isse aapke laptop/mobile ki camera light off ho jayegi
-    if (localVideoRef.current && localVideoRef.current.srcObject) {
-        const stream = localVideoRef.current.srcObject;
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop()); // Har ek track (video/audio) ko stop karega
-        localVideoRef.current.srcObject = null;
-    }
+        const targetId =
+            selectedChat?._id ||
+            incomingCall?.from;
 
-    if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-    }
+        if (targetId) {
 
-    // 3. WebRTC Peer Connection ko close karo taaki data stream band ho jaye
-    if (peerRef.current) {
-        peerRef.current.onicecandidate = null;
-        peerRef.current.ontrack = null;
-        peerRef.current.close();
-        peerRef.current = null; // Memory clean karne ke liye
-    }
+            socket.emit("endCall", {
+                to: targetId
+            });
+        }
 
-    // 4. 🔴 LOCAL STATE RESET (Isse button dabate hi AAPKI screen se call window hat jayegi)
-    setIsCalling(false);
-    setIncomingCall(null);
-
-    // Agar aapne koi alag se cleanup function banaya hai, toh use bhi chalne do
-    if (typeof cleanupCallUI === "function") {
         cleanupCallUI();
-    }
-};
+    };
 
-    // const endCall = () => {
-    //     const targetId = selectedChat?._id || incomingCall?.from;
-    //     if (targetId && socket) {
-    //         socket.emit("endCall", { to: targetId });
-    //     }
-    //     cleanupCallUI();
-    // };
+    // =========================
+    // CALL SOCKET EVENTS
+    // =========================
 
-    // const visibleChats = users.filter(
-    //     u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase())
-    // );
+    useEffect(() => {
 
-    const filteredChats = users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()));
-    // console.log(filteredChats);
+        if (!socket || !currentUser?._id)
+            return;
 
-    const unreadCount = Object.keys(unreadMessages).length;
+        socket.off("incomingCall");
+        socket.off("callAccepted");
+        socket.off("callRejected");
+        socket.off("callEnded");
+        socket.off("iceCandidate");
 
-    const visibleChats = users.filter(
-        u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase())
+        socket.on(
+            "incomingCall",
+            (data) => {
+
+                const myId =
+                    String(currentUser?._id);
+
+                const targetId =
+                    String(data.to);
+
+                if (
+                    !myId ||
+                    targetId !== myId
+                ) return;
+
+                setIncomingCall(data);
+            }
+        );
+
+        socket.on(
+            "callAccepted",
+            async ({ answer }) => {
+
+                try {
+
+                    if (
+                        peerRef.current &&
+                        !peerRef.current.remoteDescription
+                    ) {
+
+                        await peerRef.current.setRemoteDescription(
+                            new RTCSessionDescription(
+                                answer
+                            )
+                        );
+
+                        if (
+                            pendingCandidates.current
+                                .length > 0
+                        ) {
+
+                            for (
+                                const candidate of
+                                pendingCandidates.current
+                            ) {
+
+                                await peerRef.current.addIceCandidate(
+                                    new RTCIceCandidate(
+                                        candidate
+                                    )
+                                );
+                            }
+
+                            pendingCandidates.current = [];
+                        }
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        );
+
+        socket.on(
+            "callRejected",
+            () => {
+
+                alert("Call rejected");
+
+                cleanupCallUI();
+            }
+        );
+
+        socket.on(
+            "callEnded",
+            () => {
+
+                cleanupCallUI();
+            }
+        );
+
+        socket.on(
+            "iceCandidate",
+            async (data) => {
+
+                try {
+
+                    const actualCandidate =
+                        data.candidate;
+
+                    if (!actualCandidate) return;
+
+                    if (
+                        peerRef.current &&
+                        peerRef.current.remoteDescription
+                    ) {
+
+                        await peerRef.current.addIceCandidate(
+                            new RTCIceCandidate(
+                                actualCandidate
+                            )
+                        );
+
+                    } else {
+
+                        pendingCandidates.current.push(
+                            actualCandidate
+                        );
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        );
+
+        return () => {
+
+            socket.off("incomingCall");
+
+            socket.off("callAccepted");
+
+            socket.off("callRejected");
+
+            socket.off("callEnded");
+
+            socket.off("iceCandidate");
+        };
+
+    }, [currentUser?._id]);
+
+    // =========================
+    // HELPERS
+    // =========================
+
+    const handleLogout = () => {
+
+        socket.disconnect();
+
+        localStorage.removeItem("token");
+
+        navigate("/", {
+            replace: true
+        });
+    };
+
+    const handleBackToList = () => {
+        setIsChatOpen(false);
+    };
+
+    const openModal = (fileUrl) => {
+        setSelectedImage(
+            `${backendUrl}${fileUrl}`
+        );
+    };
+
+    const filteredChats = users.filter(
+        u =>
+            u.name
+                .toLowerCase()
+                .includes(
+                    searchTerm.toLowerCase()
+                )
     );
 
+    const unreadCount =
+        Object.keys(unreadMessages).length;
+
+    const visibleChats = users.filter(
+        u =>
+            !archivedChats.includes(u._id) &&
+            u.name
+                .toLowerCase()
+                .includes(
+                    searchTerm.toLowerCase()
+                )
+    );
 
     return (
         <div className="container">
