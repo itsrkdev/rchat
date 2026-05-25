@@ -501,59 +501,171 @@ export default function Sidebar() {
     };
 
     // WebRTC Socket Call Handlers
-    useEffect(() => {
-        if (!socket || !currentUser?._id) return;
 
-        socket.off("incomingCall");
+useEffect(() => {
+    if (!socket || !currentUser?._id) return;
 
-        socket.on("incomingCall", (data) => {
-            const myId = String(currentUser?._id);
-            const targetId = String(data.to);
+    // --- Puraane saare listeners ko safety ke liye pehle clear karo ---
+    socket.off("incomingCall");
+    socket.off("callAccepted");
+    socket.off("callRejected");
+    socket.off("callEnded");
+    socket.off("iceCandidate");
 
-            if (!myId || targetId !== myId) {
-                return;
-            }
-            setIncomingCall(data);
-        });
+    // 1. Incoming Call Listener
+    socket.on("incomingCall", (data) => {
+        const myId = String(currentUser?._id);
+        const targetId = String(data.to);
 
-        socket.on("callAccepted", async ({ answer }) => {
-            if (peerRef.current) {
-                await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-        });
+        console.log("Call received for ID:", targetId);
+        console.log("My current ID is:", myId);
 
-        socket.on("callRejected", () => {
-            alert("Call was rejected");
-            cleanupCallUI();
-        });
+        if (!myId || targetId !== myId) {
+            console.log("🚫 Not my call. Ignoring...");
+            return; 
+        }
 
-        socket.on("callEnded", () => {
-            cleanupCallUI();
-        });
+        console.log("✅ My call! Showing modal...");
+        setIncomingCall(data);
+    });
 
-        socket.on("iceCandidate", async (data) => {
+    // 2. Call Accepted Listener
+    socket.on("callAccepted", async ({ answer }) => {
+        console.log("Call Accepted by remote");
+        if (peerRef.current) {
             try {
-                const actualCandidate = data.candidate;
-                if (!actualCandidate) return;
+                // Agar pehle se remote description set na ho tabhi set karein
+                if (!peerRef.current.remoteDescription) {
+                    await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+                    
+                    // Process any queued pending candidates
+                    if (pendingCandidates.current && pendingCandidates.current.length > 0) {
+                        for (const candidate of pendingCandidates.current) {
+                            await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+                        }
+                        pendingCandidates.current = []; // clear queue
+                    }
+                }
+            } catch (error) {
+                console.error("Error setting remote description on callAccepted:", error);
+            }
+        }
+    });
 
-                if (peerRef.current && peerRef.current.remoteDescription) {
-                    await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
-                } else {
+    // 3. Call Rejected Listener
+    socket.on("callRejected", () => {
+        console.log("Call was rejected");
+        alert("Call was rejected");
+        // Dono functions ko safety se check karke run karein
+        if (typeof endCall === "function") endCall();
+        if (typeof resetCallStates === "function") resetCallStates();
+    });
+
+    // 4. Remote User Ended Call Listener (FIXED)
+    socket.on("callEnded", () => {
+        console.log("Remote user ended the call - Triggering UI Cleanup");
+        
+        // Pehle WebRTC streams aur connection band karo taki loop na bane
+        if (peerRef.current) {
+            peerRef.current.close();
+            peerRef.current = null;
+        }
+
+        // UI clean karo
+        if (typeof cleanupCallUI === "function") {
+            cleanupCallUI();
+        } else if (typeof resetCallStates === "function") {
+            resetCallStates();
+        }
+        
+        // State levels manual safety reset
+        setIsCalling(false);
+        setIncomingCall(null);
+    });
+
+    // 5. ICE Candidate Listener
+    socket.on("iceCandidate", async (data) => {
+        try {
+            const actualCandidate = data.candidate;
+            if (!actualCandidate) return;
+
+            if (peerRef.current && peerRef.current.remoteDescription && peerRef.current.remoteDescription.type) {
+                await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
+            } else {
+                if (pendingCandidates.current) {
                     pendingCandidates.current.push(actualCandidate);
                 }
-            } catch (err) {
-                console.error("ICE Candidate adding error:", err);
             }
-        });
+        } catch (err) {
+            console.error("ICE Candidate adding error:", err);
+        }
+    });
 
-        return () => {
-            socket.off("incomingCall");
-            socket.off("callAccepted");
-            socket.off("callRejected");
-            socket.off("callEnded");
-            socket.off("iceCandidate");
-        };
-    }, [socket, currentUser]);
+    // --- CLEANUP: Component unmount ya socket change hone par listeners remove honge ---
+    return () => {
+        socket.off("incomingCall");
+        socket.off("callAccepted");
+        socket.off("callRejected");
+        socket.off("callEnded"); // <-- Ye missing tha, isliye call cut nahi ho raha tha!
+        socket.off("iceCandidate");
+    };
+}, [socket, currentUser?._id]); // Sub-property ID pass ki hai taaki poore object par loop na chale
+
+
+    
+    // useEffect(() => {
+    //     if (!socket || !currentUser?._id) return;
+
+    //     socket.off("incomingCall");
+
+    //     socket.on("incomingCall", (data) => {
+    //         const myId = String(currentUser?._id);
+    //         const targetId = String(data.to);
+
+    //         if (!myId || targetId !== myId) {
+    //             return;
+    //         }
+    //         setIncomingCall(data);
+    //     });
+
+    //     socket.on("callAccepted", async ({ answer }) => {
+    //         if (peerRef.current) {
+    //             await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+    //         }
+    //     });
+
+    //     socket.on("callRejected", () => {
+    //         alert("Call was rejected");
+    //         cleanupCallUI();
+    //     });
+
+    //     socket.on("callEnded", () => {
+    //         cleanupCallUI();
+    //     });
+
+    //     socket.on("iceCandidate", async (data) => {
+    //         try {
+    //             const actualCandidate = data.candidate;
+    //             if (!actualCandidate) return;
+
+    //             if (peerRef.current && peerRef.current.remoteDescription) {
+    //                 await peerRef.current.addIceCandidate(new RTCIceCandidate(actualCandidate));
+    //             } else {
+    //                 pendingCandidates.current.push(actualCandidate);
+    //             }
+    //         } catch (err) {
+    //             console.error("ICE Candidate adding error:", err);
+    //         }
+    //     });
+
+    //     return () => {
+    //         socket.off("incomingCall");
+    //         socket.off("callAccepted");
+    //         socket.off("callRejected");
+    //         socket.off("callEnded");
+    //         socket.off("iceCandidate");
+    //     };
+    // }, [socket, currentUser]);
 
     useEffect(() => {
         if (socket && currentUser?._id) {
@@ -704,12 +816,52 @@ export default function Sidebar() {
     };
 
     const endCall = () => {
-        const targetId = selectedChat?._id || incomingCall?.from;
-        if (targetId && socket) {
-            socket.emit("endCall", { to: targetId });
-        }
+    // 1. Target ID dhoondo (Call karne wala ya receive karne wala)
+    const targetId = selectedChat?._id || incomingCall?.from;
+    
+    if (targetId && socket) {
+        // Server ko batao ki call kaat di hai taaki samne wale ka bhi cut ho jaye
+        socket.emit("endCall", { to: targetId });
+    }
+
+    // 2. 🔴 CAMERA AUR MIC KE TRACKS KO STOP KARO
+    // Isse aapke laptop/mobile ki camera light off ho jayegi
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+        const stream = localVideoRef.current.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop()); // Har ek track (video/audio) ko stop karega
+        localVideoRef.current.srcObject = null;
+    }
+
+    if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+    }
+
+    // 3. WebRTC Peer Connection ko close karo taaki data stream band ho jaye
+    if (peerRef.current) {
+        peerRef.current.onicecandidate = null;
+        peerRef.current.ontrack = null;
+        peerRef.current.close();
+        peerRef.current = null; // Memory clean karne ke liye
+    }
+
+    // 4. 🔴 LOCAL STATE RESET (Isse button dabate hi AAPKI screen se call window hat jayegi)
+    setIsCalling(false);
+    setIncomingCall(null);
+
+    // Agar aapne koi alag se cleanup function banaya hai, toh use bhi chalne do
+    if (typeof cleanupCallUI === "function") {
         cleanupCallUI();
-    };
+    }
+};
+
+    // const endCall = () => {
+    //     const targetId = selectedChat?._id || incomingCall?.from;
+    //     if (targetId && socket) {
+    //         socket.emit("endCall", { to: targetId });
+    //     }
+    //     cleanupCallUI();
+    // };
 
     // const visibleChats = users.filter(
     //     u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase())
