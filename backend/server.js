@@ -176,13 +176,27 @@ socket.on("join", (userId) => {
     //     console.log("Global Users List:", global.users);
     // });
 
-    socket.on("acceptCall", ({ to, answer }) => {
-         io.to(to).emit("callAccepted", { answer });
-        // const callerSocketId = global.users[to];
-        // if (callerSocketId) {
-        //     io.to(callerSocketId).emit("callAccepted", { answer });
-        // }
+
+     socket.on("acceptCall", ({ to, answer }) => {
+        console.log(`✅ Call accepted, sending to: ${to}`);
+
+        // Method 1: Room-based (primary)
+        io.to(to).emit("callAccepted", { answer });
+
+        // Method 2: Direct socketId fallback (backup)
+        const callerSocketId = global.users[to];
+        if (callerSocketId && callerSocketId !== socket.id) {
+            io.to(callerSocketId).emit("callAccepted", { answer });
+        }
     });
+
+    // socket.on("acceptCall", ({ to, answer }) => {
+    //      io.to(to).emit("callAccepted", { answer });
+    //     // const callerSocketId = global.users[to];
+    //     // if (callerSocketId) {
+    //     //     io.to(callerSocketId).emit("callAccepted", { answer });
+    //     // }
+    // });
 
     socket.on("callRejected", ({ to }) => {
         const callerSocketId = global.users[to];
