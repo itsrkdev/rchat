@@ -691,43 +691,65 @@ useEffect(() => {
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
 
-    const createPeer = (targetUserId) => {
-        const peer = new RTCPeerConnection({
-            iceServers: [
-                { urls: "stun:stun.l.google.com:19302" },
-                {
-                    urls: [
-                        "turn:global.metered.ca:80",
-                        "turn:global.metered.ca:443",
-                        "turns:global.metered.ca:443?transport=tcp"
-                    ],
-                    username: "3725ed443897b03f47679e29",
-                    credential: "OenRfU4K9Mb+Objg"
-                }
-            ]
-        });
-
-        peer.onicecandidate = (event) => {
-            if (event.candidate) {
-                socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+  const createPeer = (targetUserId) => {
+    const peer = new RTCPeerConnection({
+        iceServers: [
+            { urls: "stun:stun.l.google.com:19302" },
+            {
+                urls: [
+                    "turn:global.metered.ca:80",
+                    "turn:global.metered.ca:443",
+                    "turns:global.metered.ca:443?transport=tcp"
+                ],
+                username: "3725ed443897b03f47679e29",
+                credential: "OenRfU4K9Mb+Objg"
             }
-        };
+        ]
+    });
 
-        peer.ontrack = (event) => {
-            if (remoteVideoRef.current) {
-                remoteVideoRef.current.srcObject = event.streams[0];
-                remoteVideoRef.current.play().catch(err => console.error("Auto-play failed:", err));
-            }
-        };
-
-        if (localStream) {
-            localStream.getTracks().forEach(track => {
-                peer.addTrack(track, localStream);
-            });
+    peer.onicecandidate = (event) => {
+        if (event.candidate) {
+            socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
         }
-
-        return peer;
     };
+
+    // 🔴 FIXED: Remote track safety check add kiya taaki video crash na ho
+    peer.ontrack = (event) => {
+        console.log("🎵 Remote track received:", event.track.kind);
+        
+        if (remoteVideoRef.current) {
+            // Check 1: Agar pehle se wahi same stream lagi hui hai, toh dubara load mat karo
+            if (remoteVideoRef.current.srcObject === event.streams[0]) {
+                console.log("Stream already attached, skipping duplicate load.");
+                return; 
+            }
+
+            // Pehli baar stream assign karo
+            remoteVideoRef.current.srcObject = event.streams[0];
+
+            // Check 2: Safe async wrapper play karne ke liye taaki AbortError handle ho jaye
+            const playRemoteVideo = async () => {
+                try {
+                    await remoteVideoRef.current.play();
+                    console.log("🎥 Remote video playing perfectly!");
+                } catch (err) {
+                    // Is block ki wajah se browser screen freeze ya crash nahi karega
+                    console.log("Play request handled safely:", err.message);
+                }
+            };
+
+            playRemoteVideo();
+        }
+    };
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            peer.addTrack(track, localStream);
+        });
+    }
+
+    return peer;
+};
 
     const initializeMedia = async () => {
         try {
@@ -901,7 +923,6 @@ useEffect(() => {
                         ref={remoteVideoRef}
                         autoPlay
                         playsInline
-                        onLoadedMetadata={(e) => e.target.play()} // Force play jab data load ho
                         className="remote-vid"
                     />
 
