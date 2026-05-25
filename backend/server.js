@@ -73,14 +73,35 @@ io.on("connection", (socket) => {
 
 
     // 1. Join event mein room join karwao
-    socket.on("join", (userId) => {
-        if (!userId) return;
-        socket.join(userId); // ⭐ User ki ID ko hi room bana diya
-        socket.userId = userId; // ⭐ Ye line add karein/////////
-        global.users[userId] = socket.id;
-        console.log(`User ${userId} joined their personal room`);
-        io.emit("onlineusers", Object.keys(global.users));
-    });
+socket.on("join", (userId) => {
+    if (!userId) return;
+
+    // 🔴 BRAHMASTRA CHECK: Agar ye user pehle se isi socket ID se joined hai,
+    // toh use dubara save mat karo aur na hi sabko 'onlineusers' emit karo!
+    if (global.users[userId] === socket.id) {
+        console.log(`User ${userId} already active on this socket. Skipping loop.`);
+        return; 
+    }
+
+    // Agar naya connection hai ya socket ID change hui hai, tabhi aage badho
+    socket.join(userId); // User ki ID ko room bana diya
+    socket.userId = userId; 
+    global.users[userId] = socket.id;
+    
+    console.log(`User ${userId} joined their personal room`);
+    
+    // Saare clients ko fresh online users list bhejo (Sirf tabhi chalega jab real change ho)
+    io.emit("onlineusers", Object.keys(global.users));
+});
+    
+    // socket.on("join", (userId) => {
+    //     if (!userId) return;
+    //     socket.join(userId); // ⭐ User ki ID ko hi room bana diya
+    //     socket.userId = userId; // ⭐ Ye line add karein/////////
+    //     global.users[userId] = socket.id;
+    //     console.log(`User ${userId} joined their personal room`);
+    //     io.emit("onlineusers", Object.keys(global.users));
+    // });
 
     // Receive private messages
     socket.on("privateMessage", ({ sender, receiver, message, file, _id }) => {
