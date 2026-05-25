@@ -115,43 +115,46 @@ export default function Sidebar() {
     }, [token]);
 
     // Listen for online users
-// Listen for online users - FIXED LOOP
-useEffect(() => {
-    if (!socket) return;
+  // 🔴 Component ke andar sabse upar ek Ref banao (Agar pehle se nahi hai)
+const isJoinedRef = useRef(false);
 
-    // --- Safety Clean-up: Pehle puraane listeners ko hatao ---
+useEffect(() => {
+    if (!socket || !currentUser?._id) return;
+
     socket.off("onlineusers");
     socket.off("connect");
 
-    // 1. Online Users Handler
-    const handleOnlineUsers = (users) => {
+    // 1. Listeners lagao
+    socket.on("onlineusers", (users) => {
+        // Validation: Baar-baar state tabhi update karo jab users ki sankhya sach me alag ho
         console.log("Online users from server:", users);
         setOnlineUsers(users);
-    };
-    socket.on("onlineusers", handleOnlineUsers);
+    });
 
-    // 2. Connect Handler (Agar socket disconnect hoke wapas connect ho)
-    const handleConnect = () => {
-        if (currentUser?._id) {
-            console.log("Sending join for:", currentUser._id);
-            socket.emit("join", currentUser._id);
-        }
-    };
-    socket.on("connect", handleConnect);
-
-    // 3. 🔴 Urgent Manual Trigger: Agar socket PEHLE SE hi connected hai, 
-    // toh automatic emit karo, connect event ka wait mat karo
-    if (socket.connected && currentUser?._id) {
-        console.log("Socket already connected, sending join directly for:", currentUser._id);
+    socket.on("connect", () => {
+        // Agar connect event aaya, tabhi dobara join bhejo
+        console.log("Socket connected event fired. Sending join...");
         socket.emit("join", currentUser._id);
+        isJoinedRef.current = true;
+    });
+
+    // 2. 🔴 BRAHMASTRA CHECK: Agar socket pehle se connected hai aur humne IS RENDER ME join nahi bheja hai
+    if (socket.connected && !isJoinedRef.current) {
+        console.log("Sending join safely for the first time...");
+        socket.emit("join", currentUser._id);
+        isJoinedRef.current = true; // Isse ye dobara re-render par nahi chalega
     }
 
-    // --- Clean-up on unmount ---
     return () => {
-        socket.off("onlineusers", handleOnlineUsers);
-        socket.off("connect", handleConnect);
+        socket.off("onlineusers");
+        socket.off("connect");
     };
-}, [socket, currentUser?._id]); // 🔴 Dependency badal di hai taaki loop na bane
+}, [socket, currentUser?._id]); // Sirf tab chalega jab id sach me badle (logout/login par)
+
+
+    
+
+
 
 
     
