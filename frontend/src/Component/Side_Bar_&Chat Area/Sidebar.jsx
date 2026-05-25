@@ -734,7 +734,8 @@ useEffect(() => {
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
 
-  const createPeer = (targetUserId) => {
+    // ✅ FIX 2: createPeer - localStream state mat use karo, stream directly pass karo
+const createPeer = (targetUserId, stream) => {  // <-- stream parameter add kiya
     const peer = new RTCPeerConnection({
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -756,123 +757,249 @@ useEffect(() => {
         }
     };
 
-    // 🔴 FIXED: Remote track safety check add kiya taaki video crash na ho
     peer.ontrack = (event) => {
-        console.log("🎵 Remote track received:", event.track.kind);
-        
+        console.log("Remote track received:", event.track.kind);
         if (remoteVideoRef.current) {
-            // Check 1: Agar pehle se wahi same stream lagi hui hai, toh dubara load mat karo
-            if (remoteVideoRef.current.srcObject === event.streams[0]) {
-                console.log("Stream already attached, skipping duplicate load.");
-                return; 
-            }
-
-            // Pehli baar stream assign karo
             remoteVideoRef.current.srcObject = event.streams[0];
-
-            // Check 2: Safe async wrapper play karne ke liye taaki AbortError handle ho jaye
-            const playRemoteVideo = async () => {
-                try {
-                    await remoteVideoRef.current.play();
-                    console.log("🎥 Remote video playing perfectly!");
-                } catch (err) {
-                    // Is block ki wajah se browser screen freeze ya crash nahi karega
-                    console.log("Play request handled safely:", err.message);
-                }
-            };
-
-            playRemoteVideo();
+            remoteVideoRef.current.play().catch(err => 
+                console.log("Remote play handled:", err.message)
+            );
         }
     };
 
-    if (localStream) {
-        localStream.getTracks().forEach(track => {
-            peer.addTrack(track, localStream);
+    // ✅ FIX: localStream state nahi, directly parameter wala stream use karo
+    if (stream) {
+        stream.getTracks().forEach(track => {
+            peer.addTrack(track, stream);
         });
     }
 
     return peer;
 };
 
-    const initializeMedia = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
-            setLocalStream(stream);
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = stream;
-            }
-            return stream;
-        } catch (err) {
-            console.error("Media Error:", err);
-            return null;
+//   const createPeer = (targetUserId) => {
+//     const peer = new RTCPeerConnection({
+//         iceServers: [
+//             { urls: "stun:stun.l.google.com:19302" },
+//             {
+//                 urls: [
+//                     "turn:global.metered.ca:80",
+//                     "turn:global.metered.ca:443",
+//                     "turns:global.metered.ca:443?transport=tcp"
+//                 ],
+//                 username: "3725ed443897b03f47679e29",
+//                 credential: "OenRfU4K9Mb+Objg"
+//             }
+//         ]
+//     });
+
+//     peer.onicecandidate = (event) => {
+//         if (event.candidate) {
+//             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+//         }
+//     };
+
+//     // 🔴 FIXED: Remote track safety check add kiya taaki video crash na ho
+//     peer.ontrack = (event) => {
+//         console.log("🎵 Remote track received:", event.track.kind);
+        
+//         if (remoteVideoRef.current) {
+//             // Check 1: Agar pehle se wahi same stream lagi hui hai, toh dubara load mat karo
+//             if (remoteVideoRef.current.srcObject === event.streams[0]) {
+//                 console.log("Stream already attached, skipping duplicate load.");
+//                 return; 
+//             }
+
+//             // Pehli baar stream assign karo
+//             remoteVideoRef.current.srcObject = event.streams[0];
+
+//             // Check 2: Safe async wrapper play karne ke liye taaki AbortError handle ho jaye
+//             const playRemoteVideo = async () => {
+//                 try {
+//                     await remoteVideoRef.current.play();
+//                     console.log("🎥 Remote video playing perfectly!");
+//                 } catch (err) {
+//                     // Is block ki wajah se browser screen freeze ya crash nahi karega
+//                     console.log("Play request handled safely:", err.message);
+//                 }
+//             };
+
+//             playRemoteVideo();
+//         }
+//     };
+
+//     if (localStream) {
+//         localStream.getTracks().forEach(track => {
+//             peer.addTrack(track, localStream);
+//         });
+//     }
+
+//     return peer;
+// };
+    
+// ✅ FIX 1: initializeMedia - stream return karo aur ref set karo
+const initializeMedia = async () => {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        });
+        setLocalStream(stream);
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.play().catch(() => {});
         }
-    };
+        return stream;
+    } catch (err) {
+        console.error("Media Error:", err);
+        alert("Camera/Mic access denied: " + err.message);
+        return null;
+    }
+};
+    // const initializeMedia = async () => {
+    //     try {
+    //         const stream = await navigator.mediaDevices.getUserMedia({
+    //             video: true,
+    //             audio: true
+    //         });
+    //         setLocalStream(stream);
+    //         if (localVideoRef.current) {
+    //             localVideoRef.current.srcObject = stream;
+    //         }
+    //         return stream;
+    //     } catch (err) {
+    //         console.error("Media Error:", err);
+    //         return null;
+    //     }
+    // };
 
     const startCall = async () => {
+    if (!selectedChat?._id || !currentUser?._id) return;
+
+    const stream = await initializeMedia();
+    if (!stream) return;
+
+    setIsCalling(true);
+
+    // ✅ stream directly pass karo, state use mat karo
+    const peer = createPeer(selectedChat._id, stream);
+    peerRef.current = peer;
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+
+    socket.emit("callUser", {
+        to: selectedChat._id,
+        from: currentUser._id,
+        name: currentUser.name,
+        offer: offer
+    });
+};
+
+    // const startCall = async () => {
+    //     const stream = await initializeMedia();
+    //     if (!stream) return alert("Camera access denied");
+
+    //     const peer = createPeer(selectedChat._id);
+    //     peerRef.current = peer;
+    //     stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+    //     if (!selectedChat?._id || !currentUser?._id) return;
+    //     setIsCalling(true);
+
+    //     const offer = await peer.createOffer();
+    //     await peer.setLocalDescription(offer);
+
+    //     socket.emit("callUser", {
+    //         to: selectedChat._id,
+    //         from: currentUser._id,
+    //         name: currentUser.name,
+    //         offer: offer
+    //     });
+    // };
+
+// ✅ FIX 4: acceptCall - same fix, stream directly pass karo
+const acceptCall = async () => {
+    if (!incomingCall) return;
+
+    try {
         const stream = await initializeMedia();
-        if (!stream) return alert("Camera access denied");
+        if (!stream) return;
 
-        const peer = createPeer(selectedChat._id);
-        peerRef.current = peer;
-        stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
-        if (!selectedChat?._id || !currentUser?._id) return;
         setIsCalling(true);
 
-        const offer = await peer.createOffer();
-        await peer.setLocalDescription(offer);
+        // ✅ stream directly pass karo
+        const peer = createPeer(incomingCall.from, stream);
+        peerRef.current = peer;
 
-        socket.emit("callUser", {
-            to: selectedChat._id,
-            from: currentUser._id,
-            name: currentUser.name,
-            offer: offer
-        });
-    };
+        await peer.setRemoteDescription(
+            new RTCSessionDescription(incomingCall.offer)
+        );
 
-    const acceptCall = async () => {
-        if (!incomingCall) return;
-
-        try {
-            const stream = await initializeMedia();
-            if (!stream) return alert("Camera/Mic access required");
-
-            setIsCalling(true);
-
-            const peer = createPeer(incomingCall.from);
-            peerRef.current = peer;
-
-            stream.getTracks().forEach(track => {
-                peer.addTrack(track, stream);
-            });
-
-            await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-
-            while (pendingCandidates.current.length > 0) {
-                const cand = pendingCandidates.current.shift();
-                if (cand) {
-                    try {
-                        await peer.addIceCandidate(new RTCIceCandidate(cand));
-                    } catch (iceErr) {
-                        console.error("Error adding queued ICE candidate:", iceErr);
-                    }
+        // Pending ICE candidates flush karo
+        while (pendingCandidates.current.length > 0) {
+            const cand = pendingCandidates.current.shift();
+            if (cand) {
+                try {
+                    await peer.addIceCandidate(new RTCIceCandidate(cand));
+                } catch (iceErr) {
+                    console.error("ICE candidate error:", iceErr);
                 }
             }
-
-            const answer = await peer.createAnswer();
-            await peer.setLocalDescription(answer);
-
-            socket.emit("acceptCall", { to: incomingCall.from, answer });
-            setIncomingCall(null);
-
-        } catch (err) {
-            console.error("Error in acceptCall flow:", err);
-            alert("Call accept karne me koi galti hui h.");
         }
-    };
+
+        const answer = await peer.createAnswer();
+        await peer.setLocalDescription(answer);
+
+        socket.emit("acceptCall", { to: incomingCall.from, answer });
+        setIncomingCall(null);
+
+    } catch (err) {
+        console.error("Accept call error:", err);
+        alert("Call accept karne mein error: " + err.message);
+    }
+};
+    
+    // const acceptCall = async () => {
+    //     if (!incomingCall) return;
+
+    //     try {
+    //         const stream = await initializeMedia();
+    //         if (!stream) return alert("Camera/Mic access required");
+
+    //         setIsCalling(true);
+
+    //         const peer = createPeer(incomingCall.from);
+    //         peerRef.current = peer;
+
+    //         stream.getTracks().forEach(track => {
+    //             peer.addTrack(track, stream);
+    //         });
+
+    //         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+
+    //         while (pendingCandidates.current.length > 0) {
+    //             const cand = pendingCandidates.current.shift();
+    //             if (cand) {
+    //                 try {
+    //                     await peer.addIceCandidate(new RTCIceCandidate(cand));
+    //                 } catch (iceErr) {
+    //                     console.error("Error adding queued ICE candidate:", iceErr);
+    //                 }
+    //             }
+    //         }
+
+    //         const answer = await peer.createAnswer();
+    //         await peer.setLocalDescription(answer);
+
+    //         socket.emit("acceptCall", { to: incomingCall.from, answer });
+    //         setIncomingCall(null);
+
+    //     } catch (err) {
+    //         console.error("Error in acceptCall flow:", err);
+    //         alert("Call accept karne me koi galti hui h.");
+    //     }
+    // };
 
     const rejectCall = () => {
         if (!incomingCall) return;
