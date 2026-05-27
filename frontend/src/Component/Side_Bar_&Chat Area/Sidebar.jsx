@@ -450,7 +450,6 @@ export default function Sidebar() {
             localStreamRef.current = stream; // ✅ Ref mein save karo, state mein nahi
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = stream;
-                localVideoRef.current.play().catch(() => {});
             }
             return stream;
         } catch (err) {
@@ -485,11 +484,11 @@ export default function Sidebar() {
 
         peer.ontrack = (event) => {
             console.log("Remote track received:", event.track.kind);
-            if (remoteVideoRef.current) {
+            // ✅ FIX: Sirf tab assign karo jab stream alag ho - play() mat call karo
+            // autoPlay attribute khud handle karega, manual play() interrupt karta tha
+            if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== event.streams[0]) {
                 remoteVideoRef.current.srcObject = event.streams[0];
-                remoteVideoRef.current.play().catch(err =>
-                    console.log("Remote play:", err.message)
-                );
+                console.log("Remote stream assigned successfully");
             }
         };
 
@@ -603,6 +602,7 @@ export default function Sidebar() {
                         playsInline
                         className="remote-vid"
                         style={{ width: "100%", height: "300px", backgroundColor: "black" }}
+                        onLoadedMetadata={(e) => e.target.play().catch(() => {})}
                     />
                     <video
                         ref={localVideoRef}
@@ -610,6 +610,7 @@ export default function Sidebar() {
                         playsInline
                         muted={true}
                         className="local-vid"
+                        onLoadedMetadata={(e) => e.target.play().catch(() => {})}
                     />
                     <button className="end-call-circle" onClick={endCall}>
                         <PhoneOff size={24} />
@@ -872,8 +873,6 @@ export default function Sidebar() {
         </div>
     );
 }
-
-
 
 
 
