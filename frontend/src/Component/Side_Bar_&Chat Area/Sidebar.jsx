@@ -464,14 +464,23 @@ export default function Sidebar() {
         const peer = new RTCPeerConnection({
             iceServers: [
                 { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun1.l.google.com:19302" },
+                { urls: "stun:stun2.l.google.com:19302" },
+                // ✅ Free reliable TURN servers
                 {
-                    urls: [
-                        "turn:global.metered.ca:80",
-                        "turn:global.metered.ca:443",
-                        "turns:global.metered.ca:443?transport=tcp"
-                    ],
-                    username: "3725ed443897b03f47679e29",
-                    credential: "OenRfU4K9Mb+Objg"
+                    urls: "turn:openrelay.metered.ca:80",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                },
+                {
+                    urls: "turn:openrelay.metered.ca:443",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
+                },
+                {
+                    urls: "turns:openrelay.metered.ca:443?transport=tcp",
+                    username: "openrelayproject",
+                    credential: "openrelayproject"
                 }
             ]
         });
@@ -480,6 +489,15 @@ export default function Sidebar() {
             if (event.candidate) {
                 socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
             }
+        };
+
+        // ✅ ICE State logging - TURN server check ke liye
+        peer.oniceconnectionstatechange = () => {
+            console.log("🧊 ICE Connection State:", peer.iceConnectionState);
+        };
+
+        peer.onconnectionstatechange = () => {
+            console.log("🔗 Peer Connection State:", peer.connectionState);
         };
 
         peer.ontrack = (event) => {
@@ -873,7 +891,6 @@ export default function Sidebar() {
         </div>
     );
 }
-
 
 
 
