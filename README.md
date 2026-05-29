@@ -2,7 +2,7 @@
 
 A modern, fast, and responsive one-to-one chat application built using the MERN stack and Socket.io for real-time, bi-directional communication.
 
-🌐 **Live Demo:** [https://r-chat1.netlify.app](https://r-chat1.netlify.app)
+🌐 **Live Demo:** [https://itsrchat.netlify.app](https://itsrchat.netlify.app)
 
 ---
 
