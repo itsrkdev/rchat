@@ -70,26 +70,14 @@ io.on("connection", (socket) => {
 
 
     // 1. Join event mein room join karwao
-socket.on("join", (userId) => {
-    if (!userId) return;
-
-    // 🔴 BRAHMASTRA CHECK: Agar ye user pehle se isi socket ID se joined hai,
-    // toh use dubara save mat karo aur na hi sabko 'onlineusers' emit karo!
-    if (global.users[userId] === socket.id) {
-        console.log(`User ${userId} already active on this socket. Skipping loop.`);
-        return; 
-    }
-
-    // Agar naya connection hai ya socket ID change hui hai, tabhi aage badho
-    socket.join(userId); // User ki ID ko room bana diya
-    socket.userId = userId; 
-    global.users[userId] = socket.id;
-    
-    console.log(`User ${userId} joined their personal room`);
-    
-    // Saare clients ko fresh online users list bhejo (Sirf tabhi chalega jab real change ho)
-    io.emit("onlineusers", Object.keys(global.users));
-});
+    socket.on("join", (userId) => {
+        if (!userId) return;
+        socket.join(userId); // ⭐ User ki ID ko hi room bana diya
+        socket.userId = userId; // ⭐ Ye line add karein/////////
+        global.users[userId] = socket.id;
+        console.log(`User ${userId} joined their personal room`);
+        io.emit("onlineusers", Object.keys(global.users));
+    });
 
     // Receive private messages
     socket.on("privateMessage", ({ sender, receiver, message, file, _id }) => {
@@ -151,19 +139,26 @@ socket.on("join", (userId) => {
     });
 
 
-     socket.on("acceptCall", ({ to, answer }) => {
-        console.log(`✅ Call accepted, sending to: ${to}`);
 
-        // Method 1: Room-based (primary)
-        io.to(to).emit("callAccepted", { answer });
 
-        // Method 2: Direct socketId fallback (backup)
-        const callerSocketId = global.users[to];
-        if (callerSocketId && callerSocketId !== socket.id) {
-            io.to(callerSocketId).emit("callAccepted", { answer });
-        }
+    // socket.on("callUser", ({ to, from, name, offer }) => {
+    //     console.log("📞 CALL REQUEST TO ROOM:", to);
+
+    //     // ⭐ socket.id ki zaroorat nahi, directly 'to' (userId) wale room mein bhejo
+    //     io.to(to).emit("incomingCall", { from, name, offer });
+
+    //     console.log("FROM:", from);
+    //     console.log("TO (Target):", to);
+    //     console.log("Global Users List:", global.users);
+    // });
+
+    socket.on("acceptCall", ({ to, answer }) => {
+         io.to(to).emit("callAccepted", { answer });
+        // const callerSocketId = global.users[to];
+        // if (callerSocketId) {
+        //     io.to(callerSocketId).emit("callAccepted", { answer });
+        // }
     });
-
 
     socket.on("callRejected", ({ to }) => {
         const callerSocketId = global.users[to];
@@ -177,24 +172,16 @@ socket.on("join", (userId) => {
         }
     });
 
-
     socket.on("endCall", ({ to }) => {
-    // 1. Pehle global object se target user ki socket ID nikaalo
-    const receiverSocketId = global.users[to];
-    console.log(`📴 Call Ended event received. Target User ID: ${to}`);
+        const receiverSocketId = global.users[to];
+        console.log(`📴 Call Ended for: ${to}`);
 
-    if (receiverSocketId) {
-        console.log(`Sending callEnded to Socket ID: ${receiverSocketId}`);
-        io.to(receiverSocketId).emit("callEnded");
-    } else {
-        console.log(`⚠️ User ${to} is offline or socket not found in global.users`);
-        
-        // Agar aapne har user ko uski Mongo ID ke naam se room me join karwaya hua hai (socket.join(userId)), 
-        // tabhi ye line kaam karegi, varna iski zaroorat nahi hai:
-        io.to(to).emit("callEnded"); 
-    }
-});
-   
+        if (receiverSocketId) {
+            io.to(receiverSocketId).emit("callEnded");
+        } else {
+            io.to(to).emit("callEnded");
+        }
+    });
 
     // Backend: iceCandidate logic
    socket.on("iceCandidate", ({ to, candidate }) => {
@@ -206,6 +193,13 @@ socket.on("join", (userId) => {
     });
 });
 
+    // socket.on("iceCandidate", ({ to, candidate }) => {
+    //     io.to(to).emit("iceCandidate", { candidate });
+    //     // const receiverSocketId = global.users[to];
+    //     // if (receiverSocketId) {
+    //     //     io.to(receiverSocketId).emit("iceCandidate", { candidate });
+    //     // }
+    // });
 
 
 });
