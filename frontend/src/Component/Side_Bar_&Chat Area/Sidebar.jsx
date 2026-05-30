@@ -7,7 +7,6 @@ import { Moon, Sun, Archive } from "lucide-react";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const socket = io(backendUrl);
-// const socket = io("http://192.168.137.1:3000");
 
 export default function Sidebar() {
     const fileInputRef = useRef(null);
@@ -645,7 +644,6 @@ export default function Sidebar() {
         });
 
         // ⭐ IMPORTANT: Jab samne wala call ke beech mein cut kare
-        // Jab dusra banda call kaatega
         socket.on("callEnded", () => {
             console.log("Remote user ended the call");
             // Yahan function ko call karo lekin socket.emit mat karna (varna loop ban jayega)
@@ -654,10 +652,6 @@ export default function Sidebar() {
         });
 
 
-        // socket.on("callEnded", () => {
-        //     console.log("Remote user cut the call");
-        //     resetCallStates(); // local cleanup function
-        // });
          socket.on("iceCandidate", async ({ candidate }) => {
             try {
                 if (peerRef.current && peerRef.current.remoteDescription) {
@@ -671,14 +665,6 @@ export default function Sidebar() {
                 console.error("ICE Error", err);
             }
         });
-
-        // socket.on("iceCandidate", async ({ candidate }) => {
-        //     try {
-        //         if (peerRef.current && peerRef.current.remoteDescription) {
-        //             await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-        //         }
-        //     } catch (err) { console.error("ICE Error", err); }
-        // });
 
         return () => {
             socket.off("incomingCall");
@@ -711,7 +697,6 @@ export default function Sidebar() {
         setIncomingCall(null);
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     };
-
 
 
     // 3. WebRTC Functions
@@ -754,49 +739,6 @@ const createPeer = (targetUserId) => {
 };
 
 
-
-    
-    // const createPeer = (targetUserId) => {
-    //    const peer = new RTCPeerConnection({
-    //         iceServers: [
-    //             { urls: "stun:stun.l.google.com:19302" },
-    //             {
-    //                 urls: "turn:openrelay.metered.ca:80",
-    //                 username: "openrelayproject",
-    //                 credential: "openrelayproject"
-    //             }
-    //         ]
-    //     });
-        
-    //     // const peer = new RTCPeerConnection({
-    //     //     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-    //     // });
-
-    //     peer.onicecandidate = (event) => {
-    //         if (event.candidate) {
-    //             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
-    //         }
-    //     };
-
-    //     peer.ontrack = (event) => {
-    //         console.log("Adding remote stream...");
-    //         if (remoteVideoRef.current) {
-    //             remoteVideoRef.current.srcObject = event.streams[0];
-    //         }
-    //     };
-
-    //     // Voice aur Video tracks ensure karein
-    //     if (localStream) {
-    //         localStream.getTracks().forEach(track => {
-    //             console.log("Sending track:", track.kind); // console mein check karein 'audio' aur 'video' dono hai ya nahi
-    //             peer.addTrack(track, localStream);
-    //         });
-    //     }
-
-    //     return peer;
-    // };
-
-
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
 
     const initializeMedia = async () => {
@@ -816,48 +758,7 @@ const createPeer = (targetUserId) => {
         }
     };
 
-
-
-
-    // useEffect(() => {
-    //     let stream = null;
-
-    //     const getMedia = async () => {
-    //         try {
-    //             // Agar purana stream exist karta hai, toh usey pehle stop karo
-    //             if (localStream) {
-    //                 localStream.getTracks().forEach(track => track.stop());
-    //             }
-
-    //             stream = await navigator.mediaDevices.getUserMedia({
-    //                 video: true,
-    //                 audio: true
-    //             });
-
-    //             setLocalStream(stream);
-    //             if (localVideoRef.current) {
-    //                 localVideoRef.current.srcObject = stream;
-    //             }
-    //         } catch (err) {
-    //             console.error("Media Error:", err);
-    //             if (err.name === "NotReadableError") {
-    //                 alert("Camera/Mic busy hai. Dusre apps band karein.");
-    //             }
-    //         }
-    //     };
-
-    //     getMedia();
-
-    //     // Cleanup: Jab user logout kare ya component unmount ho, tab camera band ho jaye
-    //     return () => {
-    //         if (stream) {
-    //             stream.getTracks().forEach(track => track.stop());
-    //         }
-    //     };
-    // }, []); // Dependency array empty rakha hai taaki theme change par ye na chal
-
-
-
+    
     // --- 1. CALL START ---
     const startCall = async () => {
 
@@ -921,19 +822,7 @@ const acceptCall = async () => {
         console.error("Error in acceptCall flow:", err);
     }
 };
-    // const acceptCall = async () => {
-    //     if (!incomingCall) return;
-    //     setIsCalling(true);
-    //     const peer = createPeer(incomingCall.from);
-    //     peerRef.current = peer;
-
-    //     await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-    //     const answer = await peer.createAnswer();
-    //     await peer.setLocalDescription(answer);
-
-    //     socket.emit("acceptCall", { to: incomingCall.from, answer });
-    //     setIncomingCall(null);
-    // };
+ 
 
     // --- 3. CALL REJECT (Jab incoming call aaye aur aap 'Cut' karein) ---
     const rejectCall = () => {
@@ -976,27 +865,7 @@ const acceptCall = async () => {
         console.log("Call ended and hardware released");
     };
 
-
-
-    // const endCall = () => {
-    //     // Determine kisse call end karni hai (Caller or Receiver)
-    //     const targetId = selectedChat?._id || incomingCall?.from;
-
-    //     if (targetId && socket) {
-    //         socket.emit("endCall", { to: targetId });
-    //     }
-
-    //     // Local Cleanup
-    //     if (peerRef.current) {
-    //         peerRef.current.close();
-    //         peerRef.current = null;
-    //     }
-    //     setIsCalling(false);
-    //     setIncomingCall(null);
-    //     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-
-    //     console.log("Call ended locally");
-    // };
+    
 
     return (
         <div className="container">
