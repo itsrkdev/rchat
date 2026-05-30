@@ -137,8 +137,8 @@ export default function Sidebar() {
     useEffect(() => {
         const handleOnlineUsers = (users) => {
             console.log("Online users from server:", users);
-            // setOnlineUsers(users);
-            setOnlineUsers(users.map(String));
+            setOnlineUsers(users);
+            // setOnlineUsers(users.map(String));
         };
 
         socket.on("onlineusers", handleOnlineUsers);
@@ -1219,7 +1219,7 @@ const acceptCall = async () => {
                                         />
                                         
                                     
-                                         {onlineUsers.map(String).includes(String(chat._id)) ? (
+                                         {onlineUsers.includes(chat._id) ? (
                                                     <span className="online-dot"></span>
                                                 ) : (
                                                     <span className="offline-dot"></span>
