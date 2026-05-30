@@ -59,7 +59,7 @@ global.io = null;
 const io = socketIo(server, {
     pingTimeout: 5000,    // 5 sec mein detect karega agar connection lost hai
     pingInterval: 2000,   // Har 2 sec mein check karega
-   cors: { origin: ["https://r-chat1.netlify.app", "https://rchat-gcv1.onrender.com"] }
+   cors: { origin: ["https://itsrchat.netlify.app", "https://rchat-gcv1.onrender.com"] }
     // cors: { origin: "*", methods: ["GET", "POST"] }
 });
 global.io = io; // assign io to global so routes can access it
