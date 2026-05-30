@@ -46,7 +46,7 @@ export default function Sidebar() {
     const peerRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
-
+const activeCallRef = useRef(null);
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
@@ -869,35 +869,29 @@ const startCall = async () => {
 
     // --- 2. CALL ACCEPT ---
 
-const acceptCall = async () => {
+  const acceptCall = async () => {
     if (!incomingCall) return;
-
     const stream = await initializeMedia();
     if (!stream) return alert("Camera/Mic access required");
-
     setIsCalling(true);
-
-    const peer = createPeer(incomingCall.from, stream); // ⭐ stream pass kiya
+    const peer = createPeer(incomingCall.from, stream);
     peerRef.current = peer;
-
     try {
         await peer.setRemoteDescription(
             new RTCSessionDescription(incomingCall.offer)
         );
-
-        // ⭐ .current fix
         console.log("Pending candidates:", pendingCandidates.current.length);
         while (pendingCandidates.current.length > 0) {
             const cand = pendingCandidates.current.shift();
             await peer.addIceCandidate(new RTCIceCandidate(cand));
         }
-
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
 
+        activeCallRef.current = incomingCall.from; // ⭐ Yeh line add ki
+        
         socket.emit("acceptCall", { to: incomingCall.from, answer });
         setIncomingCall(null);
-
     } catch (err) {
         console.error("❌ Error in acceptCall:", err);
     }
@@ -947,38 +941,79 @@ const acceptCall = async () => {
     };
 
     // --- 4. END CALL (Active call ke beech mein cut karna) ---
+
     const endCall = () => {
-        const targetId = selectedChat?._id || incomingCall?.from;
+    // ⭐ Fix 1: activeCallRef bhi add kiya
+    const targetId = selectedChat?._id || incomingCall?.from || activeCallRef.current;
 
-        if (targetId && socket) {
-            socket.emit("endCall", { to: targetId });
-        }
+    console.log("Ending call, target:", targetId);
 
-        // --- CRITICAL: Tracks stop karna zaroori hai ---
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            localVideoRef.current.srcObject.getTracks().forEach(track => {
-                track.stop(); // Camera/Mic physical hardware ko off karta hai
-                console.log(track.kind + " stopped");
-            });
-            localVideoRef.current.srcObject = null;
-        }
+    if (targetId && socket) {
+        socket.emit("endCall", { to: targetId });
+    }
 
-        if (peerRef.current) {
-            peerRef.current.close();
-            peerRef.current = null;
-        }
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+        localVideoRef.current.srcObject.getTracks().forEach(track => {
+            track.stop();
+            console.log(track.kind + " stopped");
+        });
+        localVideoRef.current.srcObject = null;
+    }
 
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-            setLocalStream(null);
-        }
+    if (peerRef.current) {
+        peerRef.current.close();
+        peerRef.current = null;
+    }
 
-        setIsCalling(false);
-        setIncomingCall(null);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+    }
 
-        console.log("Call ended and hardware released");
-    };
+    // ⭐ Fix 2: ref clear karo
+    activeCallRef.current = null;
+
+    setIsCalling(false);
+    setIncomingCall(null);
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+    console.log("Call ended and hardware released");
+};
+
+
+    
+    // const endCall = () => {
+    //     const targetId = selectedChat?._id || incomingCall?.from;
+
+    //     if (targetId && socket) {
+    //         socket.emit("endCall", { to: targetId });
+    //     }
+
+    //     // --- CRITICAL: Tracks stop karna zaroori hai ---
+    //     if (localVideoRef.current && localVideoRef.current.srcObject) {
+    //         localVideoRef.current.srcObject.getTracks().forEach(track => {
+    //             track.stop(); // Camera/Mic physical hardware ko off karta hai
+    //             console.log(track.kind + " stopped");
+    //         });
+    //         localVideoRef.current.srcObject = null;
+    //     }
+
+    //     if (peerRef.current) {
+    //         peerRef.current.close();
+    //         peerRef.current = null;
+    //     }
+
+    //     if (localStream) {
+    //         localStream.getTracks().forEach(track => track.stop());
+    //         setLocalStream(null);
+    //     }
+
+    //     setIsCalling(false);
+    //     setIncomingCall(null);
+    //     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+
+    //     console.log("Call ended and hardware released");
+    // };
 
     
 
