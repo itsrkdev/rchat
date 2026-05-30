@@ -645,11 +645,16 @@ const activeCallRef = useRef(null);
 
         // ⭐ IMPORTANT: Jab samne wala call ke beech mein cut kare
         socket.on("callEnded", () => {
-            console.log("Remote user ended the call");
-            // Yahan function ko call karo lekin socket.emit mat karna (varna loop ban jayega)
-            // Isliye cleanup logic ko ek alag function mein rakhna best hai
-            cleanupCallUI();
-        });
+    console.log("Remote user ended the call");
+    activeCallRef.current = null; // ⭐ Yeh add karo
+    cleanupCallUI();
+});
+        // socket.on("callEnded", () => {
+        //     console.log("Remote user ended the call");
+        //     // Yahan function ko call karo lekin socket.emit mat karna (varna loop ban jayega)
+        //     // Isliye cleanup logic ko ek alag function mein rakhna best hai
+        //     cleanupCallUI();
+        // });
 
 
          socket.on("iceCandidate", async ({ candidate }) => {
@@ -684,19 +689,47 @@ const activeCallRef = useRef(null);
 
 
     // Ek common function dono ke liye
-    const cleanupCallUI = () => {
-        if (localVideoRef.current && localVideoRef.current.srcObject) {
-            localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-            localVideoRef.current.srcObject = null;
-        }
-        if (peerRef.current) {
-            peerRef.current.close();
-            peerRef.current = null;
-        }
-        setIsCalling(false);
-        setIncomingCall(null);
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    };
+const cleanupCallUI = () => {
+    // ⭐ localStream bhi stop karo
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        setLocalStream(null);
+    }
+
+    if (localVideoRef.current) {
+        localVideoRef.current.srcObject = null;
+    }
+
+    if (peerRef.current) {
+        peerRef.current.close();
+        peerRef.current = null;
+    }
+
+    activeCallRef.current = null; // ⭐ Ref clear karo
+
+    setIsCalling(false);
+    setIncomingCall(null);
+
+    if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+    }
+
+    console.log("✅ Cleanup done");
+};
+    
+    // const cleanupCallUI = () => {
+    //     if (localVideoRef.current && localVideoRef.current.srcObject) {
+    //         localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    //         localVideoRef.current.srcObject = null;
+    //     }
+    //     if (peerRef.current) {
+    //         peerRef.current.close();
+    //         peerRef.current = null;
+    //     }
+    //     setIsCalling(false);
+    //     setIncomingCall(null);
+    //     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    // };
 
 
     // 3. WebRTC Functions
