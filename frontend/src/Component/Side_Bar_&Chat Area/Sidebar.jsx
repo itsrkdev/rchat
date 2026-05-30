@@ -700,14 +700,30 @@ export default function Sidebar() {
 
 
     // 3. WebRTC Functions
-const createPeer = (targetUserId) => {
+
+const createPeer = (targetUserId, stream) => {
     const peer = new RTCPeerConnection({
         iceServers: [
-            { urls: "stun:stun.l.google.com:19302" },
+            { urls: "stun:stun.relay.metered.ca:80" },
             {
-                urls: "turn:openrelay.metered.ca:80",
-                username: "openrelayproject",
-                credential: "openrelayproject"
+                urls: "turn:global.relay.metered.ca:80",
+                username: "ee21fb16bd2370a52b2d2a0f",
+                credential: "p5CUo5PMGbQzWUzf"
+            },
+            {
+                urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                username: "ee21fb16bd2370a52b2d2a0f",
+                credential: "p5CUo5PMGbQzWUzf"
+            },
+            {
+                urls: "turn:global.relay.metered.ca:443",
+                username: "ee21fb16bd2370a52b2d2a0f",
+                credential: "p5CUo5PMGbQzWUzf"
+            },
+            {
+                urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                username: "ee21fb16bd2370a52b2d2a0f",
+                credential: "p5CUo5PMGbQzWUzf"
             }
         ]
     });
@@ -719,24 +735,63 @@ const createPeer = (targetUserId) => {
     };
 
     peer.ontrack = (event) => {
-        console.log("Remote track received:", event.track.kind);
+        console.log("✅ Remote track received:", event.track.kind);
         if (remoteVideoRef.current) {
-            // Streams set karein
             remoteVideoRef.current.srcObject = event.streams[0];
-            // Mobile/Phone fix: Manually play trigger karein
-            remoteVideoRef.current.play().catch(err => console.error("Auto-play failed:", err));
+            remoteVideoRef.current.play().catch(err =>
+                console.error("Auto-play failed:", err)
+            );
         }
     };
 
-    // Tracks sirf tabhi add karein jab localStream available ho
-    if (localStream) {
-        localStream.getTracks().forEach(track => {
-            peer.addTrack(track, localStream);
+    if (stream) {
+        stream.getTracks().forEach(track => {
+            console.log("Adding track:", track.kind);
+            peer.addTrack(track, stream);
         });
     }
 
     return peer;
 };
+
+    
+// const createPeer = (targetUserId) => {
+//     const peer = new RTCPeerConnection({
+//         iceServers: [
+//             { urls: "stun:stun.l.google.com:19302" },
+//             {
+//                 urls: "turn:openrelay.metered.ca:80",
+//                 username: "openrelayproject",
+//                 credential: "openrelayproject"
+//             }
+//         ]
+//     });
+
+//     peer.onicecandidate = (event) => {
+//         if (event.candidate) {
+//             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+//         }
+//     };
+
+//     peer.ontrack = (event) => {
+//         console.log("Remote track received:", event.track.kind);
+//         if (remoteVideoRef.current) {
+//             // Streams set karein
+//             remoteVideoRef.current.srcObject = event.streams[0];
+//             // Mobile/Phone fix: Manually play trigger karein
+//             remoteVideoRef.current.play().catch(err => console.error("Auto-play failed:", err));
+//         }
+//     };
+
+//     // Tracks sirf tabhi add karein jab localStream available ho
+//     if (localStream) {
+//         localStream.getTracks().forEach(track => {
+//             peer.addTrack(track, localStream);
+//         });
+//     }
+
+//     return peer;
+// };
 
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
@@ -760,68 +815,128 @@ const createPeer = (targetUserId) => {
 
     
     // --- 1. CALL START ---
-    const startCall = async () => {
 
-        const stream = await initializeMedia(); // Yahan camera on hoga
-        if (!stream) return alert("Camera access denied");
+const startCall = async () => {
+    if (!selectedChat?._id || !currentUser?._id) return;
 
-        const peer = createPeer(selectedChat._id);
-        peerRef.current = peer;
-        // Tracks add karna mat bhulna!
-        stream.getTracks().forEach(track => peer.addTrack(track, stream));
+    const stream = await initializeMedia();
+    if (!stream) return alert("Camera/Mic access denied");
 
-        if (!selectedChat?._id || !currentUser?._id) return;
-        setIsCalling(true);
+    const peer = createPeer(selectedChat._id, stream); // ⭐ stream pass kiya
+    peerRef.current = peer;
+
+    setIsCalling(true);
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+
+    socket.emit("callUser", {
+        to: selectedChat._id,
+        from: currentUser._id,
+        name: currentUser.name,
+        offer: offer
+    });
+};
 
 
-        const offer = await peer.createOffer();
-        await peer.setLocalDescription(offer);
+    
+    // const startCall = async () => {
 
-        console.log("Calling user:", selectedChat._id); // Debug ke liye check karein
+    //     const stream = await initializeMedia(); // Yahan camera on hoga
+    //     if (!stream) return alert("Camera access denied");
 
-        socket.emit("callUser", {
-            to: selectedChat._id,
-            from: currentUser._id,
-            name: currentUser.name,
-            offer: offer
-        });
-    };
+    //     const peer = createPeer(selectedChat._id);
+    //     peerRef.current = peer;
+    //     // Tracks add karna mat bhulna!
+    //     stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+    //     if (!selectedChat?._id || !currentUser?._id) return;
+    //     setIsCalling(true);
+
+
+    //     const offer = await peer.createOffer();
+    //     await peer.setLocalDescription(offer);
+
+    //     console.log("Calling user:", selectedChat._id); // Debug ke liye check karein
+
+    //     socket.emit("callUser", {
+    //         to: selectedChat._id,
+    //         from: currentUser._id,
+    //         name: currentUser.name,
+    //         offer: offer
+    //     });
+    // };
 
     // --- 2. CALL ACCEPT ---
+
 const acceptCall = async () => {
     if (!incomingCall) return;
-    
-    // 1. Pehle Media lo
+
     const stream = await initializeMedia();
     if (!stream) return alert("Camera/Mic access required");
 
     setIsCalling(true);
-    
-    // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
-    const peer = createPeer(incomingCall.from);
+
+    const peer = createPeer(incomingCall.from, stream); // ⭐ stream pass kiya
     peerRef.current = peer;
 
     try {
-        // 3. Remote offer set karein
-        await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+        await peer.setRemoteDescription(
+            new RTCSessionDescription(incomingCall.offer)
+        );
 
-        // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
-        console.log("Clearing pending candidates:", pendingCandidates.length);
-        while (pendingCandidates.length > 0) {
-            const cand = pendingCandidates.shift();
+        // ⭐ .current fix
+        console.log("Pending candidates:", pendingCandidates.current.length);
+        while (pendingCandidates.current.length > 0) {
+            const cand = pendingCandidates.current.shift();
             await peer.addIceCandidate(new RTCIceCandidate(cand));
         }
 
-        // 5. Answer bhejein
         const answer = await peer.createAnswer();
         await peer.setLocalDescription(answer);
 
         socket.emit("acceptCall", { to: incomingCall.from, answer });
         setIncomingCall(null);
+
     } catch (err) {
-        console.error("Error in acceptCall flow:", err);
+        console.error("❌ Error in acceptCall:", err);
     }
 };
+    
+// const acceptCall = async () => {
+//     if (!incomingCall) return;
+    
+//     // 1. Pehle Media lo
+//     const stream = await initializeMedia();
+//     if (!stream) return alert("Camera/Mic access required");
+
+//     setIsCalling(true);
+    
+//     // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
+//     const peer = createPeer(incomingCall.from);
+//     peerRef.current = peer;
+
+//     try {
+//         // 3. Remote offer set karein
+//         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+
+//         // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
+//         console.log("Clearing pending candidates:", pendingCandidates.length);
+//         while (pendingCandidates.length > 0) {
+//             const cand = pendingCandidates.shift();
+//             await peer.addIceCandidate(new RTCIceCandidate(cand));
+//         }
+
+//         // 5. Answer bhejein
+//         const answer = await peer.createAnswer();
+//         await peer.setLocalDescription(answer);
+
+//         socket.emit("acceptCall", { to: incomingCall.from, answer });
+//         setIncomingCall(null);
+//     } catch (err) {
+//         console.error("Error in acceptCall flow:", err);
+//     }
+// };
  
 
     // --- 3. CALL REJECT (Jab incoming call aaye aur aap 'Cut' karein) ---
