@@ -942,21 +942,21 @@ const startCall = async () => {
 
     // --- 4. END CALL (Active call ke beech mein cut karna) ---
 
-    const endCall = () => {
-    // ⭐ Fix 1: activeCallRef bhi add kiya
-    const targetId = selectedChat?._id || incomingCall?.from || activeCallRef.current;
+   const endCall = () => {
+    // ⭐ Sabse pehle current values capture karo
+    const targetId = 
+        activeCallRef.current ||      // Pehle ref check karo
+        selectedChat?._id || 
+        incomingCall?.from;
 
-    console.log("Ending call, target:", targetId);
+    console.log("📴 endCall targetId:", targetId); // Mobile console mein check karo
 
     if (targetId && socket) {
         socket.emit("endCall", { to: targetId });
     }
 
-    if (localVideoRef.current && localVideoRef.current.srcObject) {
-        localVideoRef.current.srcObject.getTracks().forEach(track => {
-            track.stop();
-            console.log(track.kind + " stopped");
-        });
+    if (localVideoRef.current?.srcObject) {
+        localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
         localVideoRef.current.srcObject = null;
     }
 
@@ -970,14 +970,11 @@ const startCall = async () => {
         setLocalStream(null);
     }
 
-    // ⭐ Fix 2: ref clear karo
     activeCallRef.current = null;
-
     setIsCalling(false);
     setIncomingCall(null);
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
-    console.log("Call ended and hardware released");
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 };
 
 
@@ -1063,9 +1060,19 @@ const startCall = async () => {
                     {/* Local Video (Aapki apni) */}
                     {/* <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" /> */}
 
-                    <button className="end-call-circle" onClick={endCall}>
+                       <button 
+    className="end-call-circle" 
+    onClick={endCall}
+    onTouchEnd={(e) => {   // ⭐ Mobile touch fix
+        e.preventDefault();
+        endCall();
+    }}
+>
+    <PhoneOff size={24} />
+</button>
+                    {/* <button className="end-call-circle" onClick={endCall}>
                         <PhoneOff size={24} />
-                    </button>
+                    </button> */}
                 </div>
             )}
 
