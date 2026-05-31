@@ -845,8 +845,7 @@ const createPeer = (targetUserId, stream) => {
 
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
-
-     const initializeMedia = async () => {
+      const initializeMedia = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
@@ -854,10 +853,12 @@ const createPeer = (targetUserId, stream) => {
         });
         setLocalStream(stream);
         
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-            // ⭐ .play() nahi - autoPlay handle karega
-        }
+        // ⭐ setTimeout se thoda wait karo DOM ready hone ke liye
+        setTimeout(() => {
+            if (localVideoRef.current) {
+                localVideoRef.current.srcObject = stream;
+            }
+        }, 100);
         
         return stream;
     } catch (err) {
@@ -866,6 +867,15 @@ const createPeer = (targetUserId, stream) => {
         return null;
     }
 };
+
+
+ useEffect(() => {
+    if (isCalling && localStream && localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+    }
+}, [isCalling, localStream]);
+
+  
     // const initializeMedia = async () => {
     //     try {
     //         const stream = await navigator.mediaDevices.getUserMedia({
