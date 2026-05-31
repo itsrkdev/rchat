@@ -7,33 +7,40 @@ require('dotenv').config()
 
 // register
 router.post("/register", async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
 
-    const { name, email, password } = req.body;
+        // 1. Basic Validation
+        if (!name || !email || !password) {
+            return res.status(400).json({ message: "All fields are required" });
+        }
 
-    const existingUser = await User.findOne({
-        $or: [{ name }, { email }]
-    });
+        // 2. Sirf Email check karenge (Naam same ho sakta hai)
+        const existingUser = await User.findOne({ email });
 
-    if (existingUser) {
-        return res.status(400).json({ message: "An account with this email already exists" });
+        if (existingUser) {
+            return res.status(400).json({ message: "An account with this email already exists" });
+        }
+
+        // 3. Hash Password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 4. Create and Save User
+        const user = new User({
+            name, // Do alag users ka name "Rahul" ho sakta hai, koi dikkat nahi aayegi
+            email,
+            password: hashedPassword
+        });
+
+        await user.save();
+        
+        return res.status(201).json({ message: "User Registered Successfully" });
+
+    } catch (error) {
+        console.error("Registration Error:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
     }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({
-        name,
-        email,
-        password: hashedPassword
-    });
-
-    await user.save();
-    res.json({ message: "User Registered" });
-
-
-
-})
-
-// login
+});
 
 // Login
 router.post("/login", async (req, res) => {
