@@ -1096,32 +1096,27 @@ const startCall = async () => {
             {/* Active Video Call UI - Sirf unhe dikhega jo actually call par hain */}
             {isCalling && (
                 <div className="video-call-window">
+          
+         {/* Remote Video - Samne wale ka face - Puri screen */}
+        <video
+            ref={remoteVideoRef}
+            autoPlay
+            playsInline
+            onLoadedMetadata={(e) => e.target.play()}
+            className="remote-vid"
+        />
 
-                  {/* Local Video - Apna face */}
-   
-                       {/* Remote Video - Puri screen */
-                           
-                    /* {/* Remote Video */}
-                     <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        onLoadedMetadata={(e) => e.target.play()} // Force play jab data load ho
-                        className="remote-vid"
-                    />
-
-                    {/* Local Video (Aapki apni - isse mute rakhna hai) */}
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="local-vid"
-                        onLoadedMetadata={(e) => {
-                        e.target.play().catch(err => console.log(err));
-                           }}
-                    /> */
-
+        {/* Local Video - Apna face - Chota box */}
+        <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="local-vid"
+            onLoadedMetadata={(e) => {
+                e.target.play().catch(err => console.log(err));
+            }}
+        />
 
 
                    
