@@ -836,21 +836,39 @@ const createPeer = (targetUserId, stream) => {
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
 
     const initializeMedia = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
-            setLocalStream(stream);
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = stream;
-            }
-            return stream; // Stream return karna zaroori hai tracks add karne ke liye
-        } catch (err) {
-            console.error("Media Error:", err);
-            return null;
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+        });
+        setLocalStream(stream);
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+            localVideoRef.current.play().catch(e => console.log(e));
         }
-    };
+        return stream;
+    } catch (err) {
+        console.error("Media Error:", err);
+        return null;
+    }
+};
+
+    // const initializeMedia = async () => {
+    //     try {
+    //         const stream = await navigator.mediaDevices.getUserMedia({
+    //             video: true,
+    //             audio: true
+    //         });
+    //         setLocalStream(stream);
+    //         if (localVideoRef.current) {
+    //             localVideoRef.current.srcObject = stream;
+    //         }
+    //         return stream; // Stream return karna zaroori hai tracks add karne ke liye
+    //     } catch (err) {
+    //         console.error("Media Error:", err);
+    //         return null;
+    //     }
+    // };
 
     
     // --- 1. CALL START ---
@@ -1075,7 +1093,49 @@ const startCall = async () => {
             {isCalling && (
                 <div className="video-call-window">
 
-                 {/* Remote Video */}
+                  {/* Local Video - Apna face */}
+    <video
+    ref={localVideoRef}
+    autoPlay
+    playsInline
+    muted
+    style={{ 
+        position: 'absolute',
+        bottom: '20px',
+        right: '20px',
+        width: '120px',
+        height: '160px',
+        objectFit: 'cover',
+        borderRadius: '10px',
+        border: '2px solid white',
+        zIndex: 99998,
+        pointerEvents: 'none',
+        transform: 'scaleX(-1)' /* ⭐ Mirror effect - selfie jaisa dikhega */
+    }}
+/>
+
+{/* Remote Video - Samne wale ka face */}
+<video
+    ref={remoteVideoRef}
+    autoPlay
+    playsInline
+    onLoadedMetadata={(e) => e.target.play()}
+    style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        zIndex: 1,
+        pointerEvents: 'none'
+    }}
+/>
+
+
+                    
+
+                 /* {/* Remote Video */}
                      <video
                         ref={remoteVideoRef}
                         autoPlay
@@ -1091,7 +1151,12 @@ const startCall = async () => {
                         playsInline
                         muted={true} // <--- Isse hamesha true rakhein echo se bachne ke liye
                         className="local-vid"
-                    />
+                    /> */
+
+
+
+
+                    
                    
                     {/* Remote Video (Dusre bande ki) */}
                     {/* <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" /> */}
@@ -1100,15 +1165,15 @@ const startCall = async () => {
                     {/* <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" /> */}
 
                        <button 
-    className="end-call-circle" 
-    onClick={endCall}
-    onTouchEnd={(e) => {   // ⭐ Mobile touch fix
-        e.preventDefault();
-        endCall();
-    }}
->
-    <PhoneOff size={24} />
-</button>
+                       className="end-call-circle" 
+                       onClick={endCall}
+                        onTouchEnd={(e) => {   // ⭐ Mobile touch fix
+                        e.preventDefault();
+                        endCall();
+                          }}
+                          >
+                        <PhoneOff size={24} />
+                        </button>
                     {/* <button className="end-call-circle" onClick={endCall}>
                         <PhoneOff size={24} />
                     </button> */}
