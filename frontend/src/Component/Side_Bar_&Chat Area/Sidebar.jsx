@@ -1,4 +1,4 @@
- import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X } from "lucide-react";
 import "./Sidebar.css";
 import io from "socket.io-client";
@@ -31,7 +31,7 @@ export default function Sidebar() {
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-     const pendingCandidates = useRef([]);
+    const pendingCandidates = useRef([]);
 
     // 1. Nayi state add karein
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -72,7 +72,7 @@ export default function Sidebar() {
 
     // Jab bhi messages array badlega, ye function page ko smoothly niche scroll kar dega
     useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]); // messages array update hote hi chalega
 
 
@@ -651,19 +651,13 @@ export default function Sidebar() {
 
         // ⭐ IMPORTANT: Jab samne wala call ke beech mein cut kare
         socket.on("callEnded", () => {
-    console.log("Remote user ended the call");
-    activeCallRef.current = null; // ⭐ Yeh add karo
-    cleanupCallUI();
-});
-        // socket.on("callEnded", () => {
-        //     console.log("Remote user ended the call");
-        //     // Yahan function ko call karo lekin socket.emit mat karna (varna loop ban jayega)
-        //     // Isliye cleanup logic ko ek alag function mein rakhna best hai
-        //     cleanupCallUI();
-        // });
+            console.log("Remote user ended the call");
+            activeCallRef.current = null; // ⭐ Yeh add karo
+            cleanupCallUI();
+        });
 
 
-         socket.on("iceCandidate", async ({ candidate }) => {
+        socket.on("iceCandidate", async ({ candidate }) => {
             try {
                 if (peerRef.current && peerRef.current.remoteDescription) {
                     // Agar remote description set hai, toh turant add karo
@@ -695,324 +689,184 @@ export default function Sidebar() {
 
 
     // Ek common function dono ke liye
-const cleanupCallUI = () => {
-    // ⭐ localStream bhi stop karo
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
-    }
+    const cleanupCallUI = () => {
+        // ⭐ localStream bhi stop karo
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            setLocalStream(null);
+        }
 
-    if (localVideoRef.current) {
-        localVideoRef.current.srcObject = null;
-    }
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = null;
+        }
 
-    if (peerRef.current) {
-        peerRef.current.close();
-        peerRef.current = null;
-    }
+        if (peerRef.current) {
+            peerRef.current.close();
+            peerRef.current = null;
+        }
 
-    activeCallRef.current = null; // ⭐ Ref clear karo
+        activeCallRef.current = null; // ⭐ Ref clear karo
 
-    setIsCalling(false);
-    setIncomingCall(null);
+        setIsCalling(false);
+        setIncomingCall(null);
 
-    if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-    }
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = null;
+        }
 
-    console.log("✅ Cleanup done");
-};
-    
-    // const cleanupCallUI = () => {
-    //     if (localVideoRef.current && localVideoRef.current.srcObject) {
-    //         localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-    //         localVideoRef.current.srcObject = null;
-    //     }
-    //     if (peerRef.current) {
-    //         peerRef.current.close();
-    //         peerRef.current = null;
-    //     }
-    //     setIsCalling(false);
-    //     setIncomingCall(null);
-    //     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-    // };
+        console.log("✅ Cleanup done");
+    };
 
 
     // 3. WebRTC Functions
 
-const createPeer = (targetUserId, stream) => {
-    const peer = new RTCPeerConnection({
-        iceServers: [
-            { urls: "stun:stun.relay.metered.ca:80" },
-            {
-                urls: "turn:global.relay.metered.ca:80",
-                username: "ee21fb16bd2370a52b2d2a0f",
-                credential: "p5CUo5PMGbQzWUzf"
-            },
-            {
-                urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                username: "ee21fb16bd2370a52b2d2a0f",
-                credential: "p5CUo5PMGbQzWUzf"
-            },
-            {
-                urls: "turn:global.relay.metered.ca:443",
-                username: "ee21fb16bd2370a52b2d2a0f",
-                credential: "p5CUo5PMGbQzWUzf"
-            },
-            {
-                urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                username: "ee21fb16bd2370a52b2d2a0f",
-                credential: "p5CUo5PMGbQzWUzf"
-            }
-        ]
-    });
+    const createPeer = (targetUserId, stream) => {
+        const peer = new RTCPeerConnection({
+            iceServers: [
+                { urls: "stun:stun.relay.metered.ca:80" },
+                {
+                    urls: "turn:global.relay.metered.ca:80",
+                    username: "ee21fb16bd2370a52b2d2a0f",
+                    credential: "p5CUo5PMGbQzWUzf"
+                },
+                {
+                    urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                    username: "ee21fb16bd2370a52b2d2a0f",
+                    credential: "p5CUo5PMGbQzWUzf"
+                },
+                {
+                    urls: "turn:global.relay.metered.ca:443",
+                    username: "ee21fb16bd2370a52b2d2a0f",
+                    credential: "p5CUo5PMGbQzWUzf"
+                },
+                {
+                    urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                    username: "ee21fb16bd2370a52b2d2a0f",
+                    credential: "p5CUo5PMGbQzWUzf"
+                }
+            ]
+        });
 
-    peer.onicecandidate = (event) => {
-        if (event.candidate) {
-            socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+        peer.onicecandidate = (event) => {
+            if (event.candidate) {
+                socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
+            }
+        };
+
+        peer.ontrack = (event) => {
+            console.log("✅ Remote track received:", event.track.kind);
+
+            // ⭐ Sirf video track par set karo, audio par nahi
+            if (event.track.kind === "video" && remoteVideoRef.current) {
+                if (remoteVideoRef.current.srcObject !== event.streams[0]) {
+                    remoteVideoRef.current.srcObject = event.streams[0];
+                }
+            }
+        };
+
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                console.log("Adding track:", track.kind);
+                peer.addTrack(track, stream);
+            });
         }
+
+        return peer;
     };
 
-    peer.ontrack = (event) => {
-    console.log("✅ Remote track received:", event.track.kind);
-    
-    // ⭐ Sirf video track par set karo, audio par nahi
-    if (event.track.kind === "video" && remoteVideoRef.current) {
-        if (remoteVideoRef.current.srcObject !== event.streams[0]) {
-            remoteVideoRef.current.srcObject = event.streams[0];
-        }
-    }
-};
-
-    // peer.ontrack = (event) => {
-    //     console.log("✅ Remote track received:", event.track.kind);
-    //     if (remoteVideoRef.current) {
-    //         remoteVideoRef.current.srcObject = event.streams[0];
-    //         remoteVideoRef.current.play().catch(err =>
-    //             console.error("Auto-play failed:", err)
-    //         );
-    //     }
-    // };
-
-    if (stream) {
-        stream.getTracks().forEach(track => {
-            console.log("Adding track:", track.kind);
-            peer.addTrack(track, stream);
-        });
-    }
-
-    return peer;
-};
-
-    
-// const createPeer = (targetUserId) => {
-//     const peer = new RTCPeerConnection({
-//         iceServers: [
-//             { urls: "stun:stun.l.google.com:19302" },
-//             {
-//                 urls: "turn:openrelay.metered.ca:80",
-//                 username: "openrelayproject",
-//                 credential: "openrelayproject"
-//             }
-//         ]
-//     });
-
-//     peer.onicecandidate = (event) => {
-//         if (event.candidate) {
-//             socket.emit("iceCandidate", { to: targetUserId, candidate: event.candidate });
-//         }
-//     };
-
-//     peer.ontrack = (event) => {
-//         console.log("Remote track received:", event.track.kind);
-//         if (remoteVideoRef.current) {
-//             // Streams set karein
-//             remoteVideoRef.current.srcObject = event.streams[0];
-//             // Mobile/Phone fix: Manually play trigger karein
-//             remoteVideoRef.current.play().catch(err => console.error("Auto-play failed:", err));
-//         }
-//     };
-
-//     // Tracks sirf tabhi add karein jab localStream available ho
-//     if (localStream) {
-//         localStream.getTracks().forEach(track => {
-//             peer.addTrack(track, localStream);
-//         });
-//     }
-
-//     return peer;
-// };
 
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
 
- const initializeMedia = async () => {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
-        setLocalStream(stream);
-        
-        setTimeout(() => {
-            if (localVideoRef.current) {
-                localVideoRef.current.srcObject = stream;
-                console.log("✅ Local video initialized");
-            }
-        }, 200);
-        
-        return stream;
-    } catch (err) {
-        console.error("Media Error:", err);
-        alert("Camera access denied: " + err.message);
-        return null;
-    }
-};
+    const initializeMedia = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            });
+            setLocalStream(stream);
+
+            setTimeout(() => {
+                if (localVideoRef.current) {
+                    localVideoRef.current.srcObject = stream;
+                    console.log("✅ Local video initialized");
+                }
+            }, 200);
+
+            return stream;
+        } catch (err) {
+            console.error("Media Error:", err);
+            alert("Camera access denied: " + err.message);
+            return null;
+        }
+    };
 
 
-useEffect(() => {
-    if (isCalling && localStream && localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-        console.log("✅ Local video set");
-    }
-}, [isCalling, localStream]);
-  
-    // const initializeMedia = async () => {
-    //     try {
-    //         const stream = await navigator.mediaDevices.getUserMedia({
-    //             video: true,
-    //             audio: true
-    //         });
-    //         setLocalStream(stream);
-    //         if (localVideoRef.current) {
-    //             localVideoRef.current.srcObject = stream;
-    //         }
-    //         return stream; // Stream return karna zaroori hai tracks add karne ke liye
-    //     } catch (err) {
-    //         console.error("Media Error:", err);
-    //         return null;
-    //     }
-    // };
+    useEffect(() => {
+        if (isCalling && localStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = localStream;
+            console.log("✅ Local video set");
+        }
+    }, [isCalling, localStream]);
 
-    
+
+
     // --- 1. CALL START ---
 
-const startCall = async () => {
-    if (!selectedChat?._id || !currentUser?._id) return;
+    const startCall = async () => {
+        if (!selectedChat?._id || !currentUser?._id) return;
 
-    const stream = await initializeMedia();
-    if (!stream) return alert("Camera/Mic access denied");
+        const stream = await initializeMedia();
+        if (!stream) return alert("Camera/Mic access denied");
 
-    const peer = createPeer(selectedChat._id, stream); // ⭐ stream pass kiya
-    peerRef.current = peer;
+        const peer = createPeer(selectedChat._id, stream); // ⭐ stream pass kiya
+        peerRef.current = peer;
 
-    setIsCalling(true);
+        setIsCalling(true);
 
-    const offer = await peer.createOffer();
-    await peer.setLocalDescription(offer);
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
 
-    socket.emit("callUser", {
-        to: selectedChat._id,
-        from: currentUser._id,
-        name: currentUser.name,
-        offer: offer
-    });
-};
+        socket.emit("callUser", {
+            to: selectedChat._id,
+            from: currentUser._id,
+            name: currentUser.name,
+            offer: offer
+        });
+    };
 
-
-    
-    // const startCall = async () => {
-
-    //     const stream = await initializeMedia(); // Yahan camera on hoga
-    //     if (!stream) return alert("Camera access denied");
-
-    //     const peer = createPeer(selectedChat._id);
-    //     peerRef.current = peer;
-    //     // Tracks add karna mat bhulna!
-    //     stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
-    //     if (!selectedChat?._id || !currentUser?._id) return;
-    //     setIsCalling(true);
-
-
-    //     const offer = await peer.createOffer();
-    //     await peer.setLocalDescription(offer);
-
-    //     console.log("Calling user:", selectedChat._id); // Debug ke liye check karein
-
-    //     socket.emit("callUser", {
-    //         to: selectedChat._id,
-    //         from: currentUser._id,
-    //         name: currentUser.name,
-    //         offer: offer
-    //     });
-    // };
 
     // --- 2. CALL ACCEPT ---
 
-  const acceptCall = async () => {
-    if (!incomingCall) return;
-    const stream = await initializeMedia();
-    if (!stream) return alert("Camera/Mic access required");
-    setIsCalling(true);
-    const peer = createPeer(incomingCall.from, stream);
-    peerRef.current = peer;
-    try {
-        await peer.setRemoteDescription(
-            new RTCSessionDescription(incomingCall.offer)
-        );
-        console.log("Pending candidates:", pendingCandidates.current.length);
-        while (pendingCandidates.current.length > 0) {
-            const cand = pendingCandidates.current.shift();
-            await peer.addIceCandidate(new RTCIceCandidate(cand));
+    const acceptCall = async () => {
+        if (!incomingCall) return;
+        const stream = await initializeMedia();
+        if (!stream) return alert("Camera/Mic access required");
+        setIsCalling(true);
+        const peer = createPeer(incomingCall.from, stream);
+        peerRef.current = peer;
+        try {
+            await peer.setRemoteDescription(
+                new RTCSessionDescription(incomingCall.offer)
+            );
+            console.log("Pending candidates:", pendingCandidates.current.length);
+            while (pendingCandidates.current.length > 0) {
+                const cand = pendingCandidates.current.shift();
+                await peer.addIceCandidate(new RTCIceCandidate(cand));
+            }
+            const answer = await peer.createAnswer();
+            await peer.setLocalDescription(answer);
+
+            activeCallRef.current = incomingCall.from; // ⭐ Yeh line add ki
+
+            socket.emit("acceptCall", { to: incomingCall.from, answer });
+            setIncomingCall(null);
+        } catch (err) {
+            console.error("❌ Error in acceptCall:", err);
         }
-        const answer = await peer.createAnswer();
-        await peer.setLocalDescription(answer);
+    };
 
-        activeCallRef.current = incomingCall.from; // ⭐ Yeh line add ki
-        
-        socket.emit("acceptCall", { to: incomingCall.from, answer });
-        setIncomingCall(null);
-    } catch (err) {
-        console.error("❌ Error in acceptCall:", err);
-    }
-};
-    
-// const acceptCall = async () => {
-//     if (!incomingCall) return;
-    
-//     // 1. Pehle Media lo
-//     const stream = await initializeMedia();
-//     if (!stream) return alert("Camera/Mic access required");
 
-//     setIsCalling(true);
-    
-//     // 2. Peer create karo (Iske andar tracks apne aap add ho jayenge)
-//     const peer = createPeer(incomingCall.from);
-//     peerRef.current = peer;
-
-//     try {
-//         // 3. Remote offer set karein
-//         await peer.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
-
-//         // 4. ⭐ QUEUE CLEAR: Ab candidates add karein
-//         console.log("Clearing pending candidates:", pendingCandidates.length);
-//         while (pendingCandidates.length > 0) {
-//             const cand = pendingCandidates.shift();
-//             await peer.addIceCandidate(new RTCIceCandidate(cand));
-//         }
-
-//         // 5. Answer bhejein
-//         const answer = await peer.createAnswer();
-//         await peer.setLocalDescription(answer);
-
-//         socket.emit("acceptCall", { to: incomingCall.from, answer });
-//         setIncomingCall(null);
-//     } catch (err) {
-//         console.error("Error in acceptCall flow:", err);
-//     }
-// };
- 
 
     // --- 3. CALL REJECT (Jab incoming call aaye aur aap 'Cut' karein) ---
     const rejectCall = () => {
@@ -1023,77 +877,41 @@ const startCall = async () => {
 
     // --- 4. END CALL (Active call ke beech mein cut karna) ---
 
-   const endCall = () => {
-    // ⭐ Sabse pehle current values capture karo
-    const targetId = 
-        activeCallRef.current ||      // Pehle ref check karo
-        selectedChat?._id || 
-        incomingCall?.from;
+    const endCall = () => {
+        // ⭐ Sabse pehle current values capture karo
+        const targetId =
+            activeCallRef.current ||      // Pehle ref check karo
+            selectedChat?._id ||
+            incomingCall?.from;
 
-    console.log("📴 endCall targetId:", targetId); // Mobile console mein check karo
+        console.log("📴 endCall targetId:", targetId); // Mobile console mein check karo
 
-    if (targetId && socket) {
-        socket.emit("endCall", { to: targetId });
-    }
+        if (targetId && socket) {
+            socket.emit("endCall", { to: targetId });
+        }
 
-    if (localVideoRef.current?.srcObject) {
-        localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-        localVideoRef.current.srcObject = null;
-    }
+        if (localVideoRef.current?.srcObject) {
+            localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+            localVideoRef.current.srcObject = null;
+        }
 
-    if (peerRef.current) {
-        peerRef.current.close();
-        peerRef.current = null;
-    }
+        if (peerRef.current) {
+            peerRef.current.close();
+            peerRef.current = null;
+        }
 
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
-    }
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            setLocalStream(null);
+        }
 
-    activeCallRef.current = null;
-    setIsCalling(false);
-    setIncomingCall(null);
+        activeCallRef.current = null;
+        setIsCalling(false);
+        setIncomingCall(null);
 
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-};
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+    };
 
-
-    
-    // const endCall = () => {
-    //     const targetId = selectedChat?._id || incomingCall?.from;
-
-    //     if (targetId && socket) {
-    //         socket.emit("endCall", { to: targetId });
-    //     }
-
-    //     // --- CRITICAL: Tracks stop karna zaroori hai ---
-    //     if (localVideoRef.current && localVideoRef.current.srcObject) {
-    //         localVideoRef.current.srcObject.getTracks().forEach(track => {
-    //             track.stop(); // Camera/Mic physical hardware ko off karta hai
-    //             console.log(track.kind + " stopped");
-    //         });
-    //         localVideoRef.current.srcObject = null;
-    //     }
-
-    //     if (peerRef.current) {
-    //         peerRef.current.close();
-    //         peerRef.current = null;
-    //     }
-
-    //     if (localStream) {
-    //         localStream.getTracks().forEach(track => track.stop());
-    //         setLocalStream(null);
-    //     }
-
-    //     setIsCalling(false);
-    //     setIncomingCall(null);
-    //     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-
-    //     console.log("Call ended and hardware released");
-    // };
-
-    
 
     return (
         <div className="container">
@@ -1116,45 +934,34 @@ const startCall = async () => {
             {/* Active Video Call UI - Sirf unhe dikhega jo actually call par hain */}
             {isCalling && (
                 <div className="video-call-window">
-          
-         {/* Remote Video - Samne wale ka face - Puri screen */}
-         <video
-        ref={remoteVideoRef}
-        autoPlay
-        playsInline
-        className="remote-vid"
-         />
 
-        {/* Local Video - Apna face - Chota box */}
-        <video
-         ref={localVideoRef}
-        autoPlay
-        playsInline
-         muted
-         className="local-vid"
-         />
+                    {/* Remote Video - Samne wale ka face - Puri screen */}
+                    <video
+                        ref={remoteVideoRef}
+                        autoPlay
+                        playsInline
+                        className="remote-vid"
+                    />
 
+                    {/* Local Video - Apna face - Chota box */}
+                    <video
+                        ref={localVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="local-vid"
+                    />
 
-                   
-                    {/* Remote Video (Dusre bande ki) */}
-                    {/* <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" /> */}
-
-                    {/* Local Video (Aapki apni) */}
-                    {/* <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" /> */}
-
-                       <button 
-                       className="end-call-circle" 
-                       onClick={endCall}
+                    <button
+                        className="end-call-circle"
+                        onClick={endCall}
                         onTouchEnd={(e) => {   // ⭐ Mobile touch fix
-                        e.preventDefault();
-                        endCall();
-                          }}
-                          >
+                            e.preventDefault();
+                            endCall();
+                        }}
+                    >
                         <PhoneOff size={24} />
-                        </button>
-                    {/* <button className="end-call-circle" onClick={endCall}>
-                        <PhoneOff size={24} />
-                    </button> */}
+                    </button>
                 </div>
             )}
 
@@ -1200,7 +1007,7 @@ const startCall = async () => {
                             />
                             <label htmlFor="avatarUpload" className="avatar-label">
 
-                                   <img
+                                <img
                                     src={
                                         currentUser.avatar
                                             ? currentUser.avatar.startsWith("http")
@@ -1211,7 +1018,7 @@ const startCall = async () => {
                                     alt="avatar"
                                     className="sidebar-avatar"
                                 />
-                              
+
                             </label>
                             <span>Dp</span>
                         </div>
@@ -1266,8 +1073,8 @@ const startCall = async () => {
                                     .map((chat, k) => (
 
                                         <div className="chat-item archived" onClick={() => setSelectedChat(chat)}>
-                                            
-                                             <img
+
+                                            <img
                                                 src={
                                                     chat.avatar
                                                         ? chat.avatar.startsWith("http")
@@ -1278,7 +1085,7 @@ const startCall = async () => {
                                                 alt="avatar"
                                                 className="chat-avatar"
                                             />
-                                            
+
                                             <div className="chat-info">
                                                 <span className="chat-name">{chat.name}</span>
                                                 <span className="chat-message">{lastMessages[chat._id] || "Start chatting..."}</span>
@@ -1325,17 +1132,17 @@ const startCall = async () => {
                                             alt="avatar"
                                             className="chat-avatar"
                                         />
-                                        
-                                    
-                                         {onlineUsers.includes(chat._id) ? (
-                                                    <span className="online-dot"></span>
-                                                ) : (
-                                                    <span className="offline-dot"></span>
-                                                )}
+
+
+                                        {onlineUsers.includes(chat._id) ? (
+                                            <span className="online-dot"></span>
+                                        ) : (
+                                            <span className="offline-dot"></span>
+                                        )}
                                         <div className="chat-info">
                                             <div className="chat-name-time">
                                                 <span className="chat-name">{chat.name}</span>
-                                               
+
                                             </div>
                                             <div className={`chat-message ${unreadMessages[chat._id] ? "unread" : ""}`}>
                                                 {lastMessages[chat._id] || <span style={{ color: "gray" }}>Start chatting..</span>}
@@ -1366,7 +1173,7 @@ const startCall = async () => {
                                 <button className="back-btn" onClick={handleBackToList}>
                                     <X size={24} /> {/* Ya arrow icon use karein */}
                                 </button>
-                                  <img
+                                <img
                                     src={
                                         selectedChat.avatar
                                             ? selectedChat.avatar.startsWith("http")
@@ -1378,7 +1185,6 @@ const startCall = async () => {
                                     className="header-avatar"
                                 />
 
-                            
                                 <div className="header-info">
                                     <span className="header-name">{selectedChat.name}</span>
                                 </div>
@@ -1471,9 +1277,9 @@ const startCall = async () => {
                                         </div>
                                     </div>
                                 ))}
-                                 {/* 🟢 YE WALI LINE MAP KE BAAD ADD KARNI HAI */}
+                                {/* 🟢 YE WALI LINE MAP KE BAAD ADD KARNI HAI */}
                                 <div ref={messagesEndRef} />
-                                
+
                             </div>
 
                             <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1520,7 +1326,7 @@ const startCall = async () => {
                     ) : (
                         <div className="no-chat-selected">
 
-                             <img
+                            <img
                                 src={
                                     currentUser?.avatar
                                         ? currentUser.avatar.startsWith("http")
@@ -1531,7 +1337,7 @@ const startCall = async () => {
                                 alt="avatar"
                                 className="no-chat-image"
                             />
-                        
+
                             <h4>Hello {currentUser?.name}</h4>
                             <h2>Welcome to R-Chat</h2>
                             <p>Select a chat from the list on the left to start messaging your friends instantly.</p>
