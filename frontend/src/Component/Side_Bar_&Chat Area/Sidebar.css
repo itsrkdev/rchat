@@ -54,7 +54,7 @@
 }
 
 /* Local Video (Choti wali window) */
-.local-vid {
+/* .local-vid {
     position: absolute;
     bottom: 20px;
     right: 20px;
@@ -62,7 +62,7 @@
     z-index: 10000;
     /* Main video se bhi upar */
     border-radius: 10px;
-}
+} */
 
 
 /* SIDE BAR CSS here.........*/
@@ -1248,29 +1248,32 @@ body.dark .archived-chats .chat-item.archived .archive-btn {
     width: 100vw;
     height: 100vh;
     background: #000;
-    z-index: 1000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    z-index: 9998;
 }
 
 .remote-vid {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    pointer-events: none; /* ⭐ Yeh add karo */
+    z-index: 1;
+    pointer-events: none;
 }
+
 .local-vid {
     position: absolute;
     bottom: 20px;
     right: 20px;
-    width: 200px;
-    height: 150px;
+    width: 120px;
+    height: 160px;
     border: 2px solid white;
     border-radius: 10px;
     object-fit: cover;
-    pointer-events: none; /* ⭐ Yeh add karo */
-     transform: scaleX(-1); /* ⭐ Mirror effect */
+    z-index: 99998;
+    pointer-events: none;
+    transform: scaleX(-1);
 }
 
 .end-call-circle {
@@ -1284,10 +1287,11 @@ body.dark .archived-chats .chat-item.archived .archive-btn {
     padding: 15px;
     border: none;
     cursor: pointer;
-    z-index: 99999; /* ⭐ Yeh badhao */
-    pointer-events: all; /* ⭐ Yeh add karo */
-    touch-action: manipulation; /* ⭐ Mobile touch fix */
+    z-index: 99999;
+    pointer-events: all;
+    touch-action: manipulation;
 }
+
 
 /* responsiveeeeeee */
 /* --- 📱 MOBILE & TABLET RESPONSIVENESS --- */
