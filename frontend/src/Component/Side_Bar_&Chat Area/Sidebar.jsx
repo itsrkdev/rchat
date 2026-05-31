@@ -1112,9 +1112,6 @@ const startCall = async () => {
         autoPlay
         playsInline
         className="remote-vid"
-        onLoadedMetadata={(e) => {
-        e.target.play().catch(err => console.log(err));
-        }}
          />
 
         {/* Local Video - Apna face - Chota box */}
