@@ -103,15 +103,11 @@ export default function Sidebar() {
         localStorage.removeItem("token");
         navigate("/", { replace: true });
     };
+    
 
-
-    // const openModal = (fileUrl) => {
-    //     setSelectedImage(`${backendUrl}${fileUrl}`);
-    // };
-
-  const openModal = (fileUrl) => {
-    setSelectedImage(fileUrl); // Kyunki URL hum pehle hi sahi karke bhej rahe hain
-};
+    const openModal = (fileUrl) => {
+        setSelectedImage(fileUrl); // Kyunki URL hum pehle hi sahi karke bhej rahe hain
+    };
 
 
     // Load current user and all other users
@@ -1202,99 +1198,38 @@ export default function Sidebar() {
 
                                         {/* 🎤 Voice message (only for .webm files) */}
                                         {msg.file && msg.file.endsWith(".webm") && (
-                                                <audio controls style={{ marginBottom: "10px" }}>
-                                              <source 
-                                              src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`} 
-                                               type="audio/webm" 
-                                                  />
-                                                </audio>
-                                            
-                                            // <audio controls style={{ marginBottom: "10px" }}>
-                                            //     <source src={`${backendUrl}${msg.file}`} type="audio/webm" />
-                                            // </audio>
+                                            <audio controls style={{ marginBottom: "10px" }}>
+                                                <source
+                                                    src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`}
+                                                    type="audio/webm"
+                                                />
+                                            </audio>
+
                                         )}
 
                                         {/* Show images or documents, but exclude .webm */}
-                                           {msg.file && !msg.file.endsWith(".webm") && (
-    <div className="file-msg-wrapper" style={{ marginBottom: "10px" }}>
-        {msg.file.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-            <div className="image-container modern-img-card">
-                <img
-                    /* 🟢 1. Image src update kiya */
-                    src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`}
-                    alt="chat-img"
-                    className="chat-main-img"
-                />
-                <div className="file-actions-overlay">
-                    <button
-                        className="action-btn view-btn"
-                        /* 🟢 2. View Modal ke liye full URL condition check */
-                        onClick={() => openModal(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`)}
-                    >
-                        <span className="icon">👁️</span> View
-                    </button>
-                    <button
-                        className="action-btn download-btn"
-                        /* 🟢 3. Download button (Image ke liye) URL condition check */
-                        onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
-                    >
-                        <span className="icon">⬇️</span> Save
-                    </button>
-                </div>
-            </div>
-        ) : (
-            <div
-                className="document-container modern-doc-card"
-                /* 🟢 4. Document card click par download URL condition check */
-                onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
-            >
-                <div className="doc-icon-wrapper">
-                    <span style={{ fontSize: "22px" }}>📄</span>
-                </div>
-                <div className="doc-info">
-                    <p className="doc-name">{msg.file.split('/').pop()}</p>
-                    <small className="doc-status">Click to Download</small>
-                </div>
-                <div className="doc-download-icon">
-                    <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                    >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4M7 10l5 5 5-5M12 15V3" />
-                    </svg>
-                </div>
-            </div>
-        )}
-    </div>
-)}
-
-
-
-
-                                        
-                                        /* {msg.file && !msg.file.endsWith(".webm") && (
+                                        {msg.file && !msg.file.endsWith(".webm") && (
                                             <div className="file-msg-wrapper" style={{ marginBottom: "10px" }}>
                                                 {msg.file.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                                                     <div className="image-container modern-img-card">
                                                         <img
-                                                            src={`${backendUrl}${msg.file}`}
+                                                            /* 🟢 1. Image src update kiya */
+                                                            src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`}
                                                             alt="chat-img"
                                                             className="chat-main-img"
                                                         />
                                                         <div className="file-actions-overlay">
                                                             <button
                                                                 className="action-btn view-btn"
-                                                                onClick={() => openModal(msg.file)}
+                                                                /* 🟢 2. View Modal ke liye full URL condition check */
+                                                                onClick={() => openModal(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`)}
                                                             >
                                                                 <span className="icon">👁️</span> View
                                                             </button>
                                                             <button
                                                                 className="action-btn download-btn"
-                                                                onClick={() => handleDownload(`${backendUrl}${msg.file}`, msg.file.split('/').pop())}
+                                                                /* 🟢 3. Download button (Image ke liye) URL condition check */
+                                                                onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
                                                             >
                                                                 <span className="icon">⬇️</span> Save
                                                             </button>
@@ -1303,7 +1238,8 @@ export default function Sidebar() {
                                                 ) : (
                                                     <div
                                                         className="document-container modern-doc-card"
-                                                        onClick={() => handleDownload(`${backendUrl}${msg.file}`, msg.file.split('/').pop())}
+                                                        /* 🟢 4. Document card click par download URL condition check */
+                                                        onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
                                                     >
                                                         <div className="doc-icon-wrapper">
                                                             <span style={{ fontSize: "22px" }}>📄</span>
@@ -1327,7 +1263,8 @@ export default function Sidebar() {
                                                     </div>
                                                 )}
                                             </div>
-                                        )} */
+                                        )}
+
 
                                         {msg.message && <p className="text-content">{msg.message}</p>}
 
