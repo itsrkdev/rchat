@@ -141,7 +141,7 @@ export default function Sidebar() {
     // Listen for online users
     useEffect(() => {
         const handleOnlineUsers = (users) => {
-            console.log("Online users from server:", users);
+            // console.log("Online users from server:", users);
             setOnlineUsers(users);
             // setOnlineUsers(users.map(String));
         };
@@ -169,7 +169,7 @@ export default function Sidebar() {
             if (socket.disconnected) {
                 socket.connect();
             }
-            console.log("Sending join for:", currentUser._id);
+            // console.log("Sending join for:", currentUser._id);
             socket.emit("join", currentUser._id);
         }
     }, [currentUser]); // currentUser change hote hi turant chalega
@@ -621,23 +621,23 @@ export default function Sidebar() {
             const myId = String(currentUser?._id);
             const targetId = String(data.to);
 
-            console.log("Call received for ID:", targetId);
-            console.log("My current ID is:", myId);
+            // console.log("Call received for ID:", targetId);
+            // console.log("My current ID is:", myId);
 
             // 2. AGAR ID MATCH NAHI HOTI, TOH TURANT RETURN KARO
             if (!myId || targetId !== myId) {
-                console.log("🚫 Not my call. Ignoring...");
+                // console.log("🚫 Not my call. Ignoring...");
                 return; // Ye line baaki sabka modal rok degi
             }
 
             // 3. Agar match ho gaya, tabhi state update karo
-            console.log("✅ My call! Showing modal...");
+            // console.log("✅ My call! Showing modal...");
             setIncomingCall(data);
         });
 
 
         socket.on("callAccepted", async ({ answer }) => {
-            console.log("Call Accepted by remote");
+            // console.log("Call Accepted by remote");
             if (peerRef.current) {
                 await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
             }
@@ -651,7 +651,7 @@ export default function Sidebar() {
 
         // ⭐ IMPORTANT: Jab samne wala call ke beech mein cut kare
         socket.on("callEnded", () => {
-            console.log("Remote user ended the call");
+            // console.log("Remote user ended the call");
             activeCallRef.current = null; // ⭐ Yeh add karo
             cleanupCallUI();
         });
@@ -714,7 +714,7 @@ export default function Sidebar() {
             remoteVideoRef.current.srcObject = null;
         }
 
-        console.log("✅ Cleanup done");
+        // console.log("✅ Cleanup done");
     };
 
 
@@ -754,7 +754,7 @@ export default function Sidebar() {
         };
 
         peer.ontrack = (event) => {
-            console.log("✅ Remote track received:", event.track.kind);
+            // console.log("✅ Remote track received:", event.track.kind);
 
             // ⭐ Sirf video track par set karo, audio par nahi
             if (event.track.kind === "video" && remoteVideoRef.current) {
@@ -766,7 +766,7 @@ export default function Sidebar() {
 
         if (stream) {
             stream.getTracks().forEach(track => {
-                console.log("Adding track:", track.kind);
+                // console.log("Adding track:", track.kind);
                 peer.addTrack(track, stream);
             });
         }
@@ -789,7 +789,7 @@ export default function Sidebar() {
             setTimeout(() => {
                 if (localVideoRef.current) {
                     localVideoRef.current.srcObject = stream;
-                    console.log("✅ Local video initialized");
+                    // console.log("✅ Local video initialized");
                 }
             }, 200);
 
@@ -805,7 +805,7 @@ export default function Sidebar() {
     useEffect(() => {
         if (isCalling && localStream && localVideoRef.current) {
             localVideoRef.current.srcObject = localStream;
-            console.log("✅ Local video set");
+            
         }
     }, [isCalling, localStream]);
 
@@ -849,7 +849,7 @@ export default function Sidebar() {
             await peer.setRemoteDescription(
                 new RTCSessionDescription(incomingCall.offer)
             );
-            console.log("Pending candidates:", pendingCandidates.current.length);
+            // console.log("Pending candidates:", pendingCandidates.current.length);
             while (pendingCandidates.current.length > 0) {
                 const cand = pendingCandidates.current.shift();
                 await peer.addIceCandidate(new RTCIceCandidate(cand));
@@ -884,7 +884,7 @@ export default function Sidebar() {
             selectedChat?._id ||
             incomingCall?.from;
 
-        console.log("📴 endCall targetId:", targetId); // Mobile console mein check karo
+        // console.log("📴 endCall targetId:", targetId); // Mobile console mein check karo
 
         if (targetId && socket) {
             socket.emit("endCall", { to: targetId });
