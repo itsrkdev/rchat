@@ -44,23 +44,41 @@ router.post("/register", async (req, res) => {
 
 // Login
 router.post("/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    const { email, password } = req.body;
+        // 1. Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) {
+            // 400 ki jagah 404 (Not Found) bhejenge
+            return res.status(404).json({ message: "Account not found. Please sign up to create an account." });
+        }
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Account not found. Please sign up to create an account." });
+        // 2. Check Password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            // 400 ki jagah 401 (Unauthorized) bhejenge
+            return res.status(401).json({ message: "Invalid credentials. Wrong password." });
+        }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Invalid credentials Wrong password" });
+        // 3. Generate Token
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1d" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1d" });
-
-    // res.json({ token, user });
-      res.status(200).json({
+        // 4. Success Response
+        return res.status(200).json({
             message: "Login successful",
             token,
-            user
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email
+            } // Security ke liye pura user object (with hashed password) bhejne ki jagah sirf zaroori data bhein
         });
+
+    } catch (error) {
+        console.error("Login Error:", error);
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
 });
 
 
