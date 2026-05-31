@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+ import React, { useState, useEffect, useRef } from 'react';
 import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X } from "lucide-react";
 import "./Sidebar.css";
 import io from "socket.io-client";
@@ -774,14 +774,25 @@ const createPeer = (targetUserId, stream) => {
     };
 
     peer.ontrack = (event) => {
-        console.log("✅ Remote track received:", event.track.kind);
-        if (remoteVideoRef.current) {
+    console.log("✅ Remote track received:", event.track.kind);
+    
+    if (remoteVideoRef.current) {
+        // ⭐ Sirf tab set karo jab stream naya ho - conflict avoid karega
+        if (remoteVideoRef.current.srcObject !== event.streams[0]) {
             remoteVideoRef.current.srcObject = event.streams[0];
-            remoteVideoRef.current.play().catch(err =>
-                console.error("Auto-play failed:", err)
-            );
         }
-    };
+    }
+};
+
+    // peer.ontrack = (event) => {
+    //     console.log("✅ Remote track received:", event.track.kind);
+    //     if (remoteVideoRef.current) {
+    //         remoteVideoRef.current.srcObject = event.streams[0];
+    //         remoteVideoRef.current.play().catch(err =>
+    //             console.error("Auto-play failed:", err)
+    //         );
+    //     }
+    // };
 
     if (stream) {
         stream.getTracks().forEach(track => {
@@ -835,7 +846,7 @@ const createPeer = (targetUserId, stream) => {
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
 
-   const initializeMedia = async () => {
+     const initializeMedia = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
@@ -843,10 +854,9 @@ const createPeer = (targetUserId, stream) => {
         });
         setLocalStream(stream);
         
-        // ⭐ Turant ref mein set karo, state update ka wait mat karo
         if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
-            await localVideoRef.current.play().catch(e => console.log("Play error:", e));
+            // ⭐ .play() nahi - autoPlay handle karega
         }
         
         return stream;
@@ -856,7 +866,6 @@ const createPeer = (targetUserId, stream) => {
         return null;
     }
 };
-
     // const initializeMedia = async () => {
     //     try {
     //         const stream = await navigator.mediaDevices.getUserMedia({
@@ -1098,25 +1107,24 @@ const startCall = async () => {
                 <div className="video-call-window">
           
          {/* Remote Video - Samne wale ka face - Puri screen */}
-        <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            onLoadedMetadata={(e) => e.target.play()}
-            className="remote-vid"
-        />
+         <video
+        ref={remoteVideoRef}
+        autoPlay
+        playsInline
+        className="remote-vid"
+        onLoadedMetadata={(e) => {
+        e.target.play().catch(err => console.log(err));
+        }}
+         />
 
         {/* Local Video - Apna face - Chota box */}
         <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className="local-vid"
-            onLoadedMetadata={(e) => {
-                e.target.play().catch(err => console.log(err));
-            }}
-        />
+         ref={localVideoRef}
+        autoPlay
+        playsInline
+         muted
+         className="local-vid"
+         />
 
 
                    
