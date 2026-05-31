@@ -1094,48 +1094,10 @@ const startCall = async () => {
                 <div className="video-call-window">
 
                   {/* Local Video - Apna face */}
-    <video
-    ref={localVideoRef}
-    autoPlay
-    playsInline
-    muted
-    style={{ 
-        position: 'absolute',
-        bottom: '20px',
-        right: '20px',
-        width: '120px',
-        height: '160px',
-        objectFit: 'cover',
-        borderRadius: '10px',
-        border: '2px solid white',
-        zIndex: 99998,
-        pointerEvents: 'none',
-        transform: 'scaleX(-1)' /* ⭐ Mirror effect - selfie jaisa dikhega */
-    }}
-/>
-
-{/* Remote Video - Samne wale ka face */}
-<video
-    ref={remoteVideoRef}
-    autoPlay
-    playsInline
-    onLoadedMetadata={(e) => e.target.play()}
-    style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover',
-        zIndex: 1,
-        pointerEvents: 'none'
-    }}
-/>
-
-
-                    
-
-                 /* {/* Remote Video */}
+   
+                       {/* Remote Video - Puri screen */
+                           
+                    /* {/* Remote Video */}
                      <video
                         ref={remoteVideoRef}
                         autoPlay
@@ -1149,14 +1111,12 @@ const startCall = async () => {
                         ref={localVideoRef}
                         autoPlay
                         playsInline
-                        muted={true} // <--- Isse hamesha true rakhein echo se bachne ke liye
+                        muted
                         className="local-vid"
                     /> */
 
 
 
-
-                    
                    
                     {/* Remote Video (Dusre bande ki) */}
                     {/* <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" /> */}
