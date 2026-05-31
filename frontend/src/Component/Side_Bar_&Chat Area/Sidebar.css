@@ -53,18 +53,6 @@
     z-index: 9999;
 }
 
-/* Local Video (Choti wali window) */
-/* .local-vid {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 150px;
-    z-index: 10000;
-    /* Main video se bhi upar */
-    border-radius: 10px;
-} */
-
-
 /* SIDE BAR CSS here.........*/
 
 .side-bar {
