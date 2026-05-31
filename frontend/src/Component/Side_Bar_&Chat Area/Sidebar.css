@@ -1270,6 +1270,7 @@ body.dark .archived-chats .chat-item.archived .archive-btn {
     border-radius: 10px;
     object-fit: cover;
     pointer-events: none; /* ⭐ Yeh add karo */
+     transform: scaleX(-1); /* ⭐ Mirror effect */
 }
 
 .end-call-circle {
