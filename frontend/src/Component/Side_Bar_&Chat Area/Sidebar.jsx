@@ -776,8 +776,8 @@ const createPeer = (targetUserId, stream) => {
     peer.ontrack = (event) => {
     console.log("✅ Remote track received:", event.track.kind);
     
-    if (remoteVideoRef.current) {
-        // ⭐ Sirf tab set karo jab stream naya ho - conflict avoid karega
+    // ⭐ Sirf video track par set karo, audio par nahi
+    if (event.track.kind === "video" && remoteVideoRef.current) {
         if (remoteVideoRef.current.srcObject !== event.streams[0]) {
             remoteVideoRef.current.srcObject = event.streams[0];
         }
@@ -845,7 +845,8 @@ const createPeer = (targetUserId, stream) => {
 
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
-      const initializeMedia = async () => {
+
+ const initializeMedia = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
@@ -853,12 +854,12 @@ const createPeer = (targetUserId, stream) => {
         });
         setLocalStream(stream);
         
-        // ⭐ setTimeout se thoda wait karo DOM ready hone ke liye
         setTimeout(() => {
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = stream;
+                console.log("✅ Local video initialized");
             }
-        }, 100);
+        }, 200);
         
         return stream;
     } catch (err) {
@@ -869,12 +870,12 @@ const createPeer = (targetUserId, stream) => {
 };
 
 
- useEffect(() => {
+useEffect(() => {
     if (isCalling && localStream && localVideoRef.current) {
         localVideoRef.current.srcObject = localStream;
+        console.log("✅ Local video set");
     }
 }, [isCalling, localStream]);
-
   
     // const initializeMedia = async () => {
     //     try {
