@@ -835,20 +835,24 @@ const createPeer = (targetUserId, stream) => {
 
     // --- 2. SIRF CAMERA/MEDIA KE LIYE (Sirf ek baar chalega) ---
 
-    const initializeMedia = async () => {
+   const initializeMedia = async () => {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
             audio: true
         });
         setLocalStream(stream);
+        
+        // ⭐ Turant ref mein set karo, state update ka wait mat karo
         if (localVideoRef.current) {
             localVideoRef.current.srcObject = stream;
-            localVideoRef.current.play().catch(e => console.log(e));
+            await localVideoRef.current.play().catch(e => console.log("Play error:", e));
         }
+        
         return stream;
     } catch (err) {
         console.error("Media Error:", err);
+        alert("Camera access denied: " + err.message);
         return null;
     }
 };
@@ -1113,6 +1117,9 @@ const startCall = async () => {
                         playsInline
                         muted
                         className="local-vid"
+                        onLoadedMetadata={(e) => {
+                        e.target.play().catch(err => console.log(err));
+                           }}
                     /> */
 
 
