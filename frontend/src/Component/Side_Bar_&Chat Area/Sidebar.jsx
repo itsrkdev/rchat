@@ -46,7 +46,8 @@ export default function Sidebar() {
     const peerRef = useRef(null);
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
-const activeCallRef = useRef(null);
+    const activeCallRef = useRef(null);
+    const messagesEndRef = useRef(null);
 
     const token = localStorage.getItem("token");
     const navigate = useNavigate();
@@ -68,6 +69,11 @@ const activeCallRef = useRef(null);
         document.body.classList.remove("light", "dark");
         document.body.classList.add(theme);
     }, [theme]);
+
+    // Jab bhi messages array badlega, ye function page ko smoothly niche scroll kar dega
+    useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]); // messages array update hote hi chalega
 
 
     // archiveeeeeee
@@ -1422,6 +1428,9 @@ const startCall = async () => {
                                         </div>
                                     </div>
                                 ))}
+                                 {/* 🟢 YE WALI LINE MAP KE BAAD ADD KARNI HAI */}
+                                <div ref={messagesEndRef} />
+                                
                             </div>
 
                             <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
