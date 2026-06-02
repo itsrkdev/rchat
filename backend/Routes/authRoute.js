@@ -82,47 +82,39 @@ router.post("/login", async (req, res) => {
 });
 
 
-// ==========================================
-// 3. BLOCK USER ROUTE (NEW)
-// ==========================================
-
+// 1. Block User API (Backend)
 router.post("/block-user", async (req, res) => {
+    const { myId, blockUserId } = req.body;
     try {
-        const { myId, blockUserId } = req.body; 
-
-        if (myId === blockUserId) {
-            return res.status(400).json({ message: "You cannot block yourself" });
+        await User.findByIdAndUpdate(myId, { $addToSet: { blockedUsers: blockUserId } });
+        
+        // 🟢 REAL-TIME SOCKET EMIT: Samne wale ko batao ki use block kiya hai
+        const receiverSocketId = global.users[blockUserId]; // Jo aap socket users track karte ho
+        if (receiverSocketId) {
+            global.io.to(receiverSocketId).emit("userBlockedMe", { blockedBy: myId });
         }
 
-        // $addToSet array mein duplicate entry hone se rokta hai
-        await User.findByIdAndUpdate(myId, {
-            $addToSet: { blockedUsers: blockUserId }
-        });
-
-        return res.status(200).json({ message: "User blocked successfully" });
+        res.status(200).json({ success: true, message: "User blocked successfully" });
     } catch (error) {
-        console.error("Block Error:", error);
-        return res.status(500).json({ message: "Server error while blocking" });
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
-
-// ==========================================
-// 4. UNBLOCK USER ROUTE (NEW)
-// ==========================================
+// 2. Unblock User API (Backend)
 router.post("/unblock-user", async (req, res) => {
+    const { myId, unblockUserId } = req.body;
     try {
-        const { myId, unblockUserId } = req.body;
+        await User.findByIdAndUpdate(myId, { $pull: { blockedUsers: unblockUserId } });
 
-        // $pull array se us specific ID ko remove/delete kar dega
-        await User.findByIdAndUpdate(myId, {
-            $pull: { blockedUsers: unblockUserId }
-        });
+        // 🟢 REAL-TIME SOCKET EMIT: Samne wale ko batao ki use unblock kar diya hai
+        const receiverSocketId = global.users[unblockUserId];
+        if (receiverSocketId) {
+            global.io.to(receiverSocketId).emit("userUnblockedMe", { unblockedBy: myId });
+        }
 
-        return res.status(200).json({ message: "User unblocked successfully" });
+        res.status(200).json({ success: true, message: "User unblocked successfully" });
     } catch (error) {
-        console.error("Unblock Error:", error);
-        return res.status(500).json({ message: "Server error while unblocking" });
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
