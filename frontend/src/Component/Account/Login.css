@@ -1,271 +1,269 @@
-.wp-logo-container {
-    display: flex;
-    text-align: center;
-    align-items: center;
-    justify-content: left;
-    height: 80px;
-    gap: 3px;
+/* Custom MUI Dialog container bypass */
+.custom-dialog .MuiPaper-root {
+    max-width: 900px !important;
+    width: 100% !important;
+    border-radius: 20px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+    background-color: #ffffff !important;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* 🟢 REFRESH PAR AANE WALI BLACK BORDER KA ILAJ */
+    outline: none !important;
+    border: none !important;
+    box-linecap: round;
 }
 
-.whatsapp-logo {
-    width: 100px;
-    height: 100px;
-}
-
-.whatsapp-text {
-    margin-left: -26px;
-    margin-top: 7px;
-    width: 220px;
-    height: 100px;
-    /* adjust if needed */
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="100" viewBox="0 0 400 100"><text x="0" y="70" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="72" fill="%2325D366">Chat</text></svg>');
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center;
-}
-
-.custom-dialog .MuiDialog-paper {
-    display: flex;
-    flex-direction: row;
-    width: 70vw;
-    max-width: 1000px;
-    height: 80vh;
-    max-height: 700px;
-    margin: auto;
-    border-radius: 8px;
-    overflow: hidden;
-    padding: 0;
-}
-
+/* Main Container Layout */
 .login-container {
     display: flex;
     width: 100%;
+    height: 560px;
+    background-color: #ffffff;
 }
 
+
+/* LEFT PANEL (BRANDING) */
+
 .login-left-panel {
-    flex: 1;
-    padding: 5px 40px;
-    background-color: #f0f2f5;
-    color: #111;
+    flex: 1.1;
+    background-color: #f8fafc;
+    /* Minimal Light Soft Slate tint */
+    border-right: 1px solid #f1f5f9;
+    padding: 45px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.wp-logo-container {
+    margin-bottom: 25px;
+    display: flex;
+    align-items: center;
+}
+
+/* 🟢 LOGO KO PAGE KE ACCORDING BADA KIYA */
+.whatsapp-logo {
+    height: 75px;
+    /* 50px se badha kar 75px kiya */
+    width: 75px;
+    /* Uniform square clean size */
+    object-fit: contain;
 }
 
 .login-left-panel h2 {
     font-size: 28px;
-    margin-bottom: 25px;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+    font-weight: 700;
 }
 
-.login-left-panel ul {
-    padding-left: 20px;
-    margin-top: 40px;
+.left-subtitle {
+    font-size: 15px;
+    color: #64748b;
+    margin: 0 0 35px 0;
 }
 
-.login-left-panel ul li {
-    margin-bottom: 18px;
-    line-height: 1.6;
-    font-size: 16px;
-}
-
-.login-left-panel a {
-    color: #00a884;
-    text-decoration: none;
-}
-
-.login-left-panel a:hover {
-    text-decoration: underline;
-}
-
-
-.login-right-panel {
-    flex: 1;
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    background-color: #fff;
-}
-
-.button-change-page {
-    background-color: #00a884;
-    border: none;
-    padding: 15px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-.button-change-page:hover {
-    background-color: #03755d;
-}
-
-.form-box {
+.modern-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 40px 0;
     display: flex;
     flex-direction: column;
-    /* Inputs ko ek ke niche ek laane ke liye */
-    align-items: center;
-    /* Center align karne ke liye */
-    justify-content: center;
-    width: 100%;
-    padding: 30px;
+    gap: 16px;
 }
 
-.form-box h2 {
-    margin-bottom: 20px;
-    color: #00a884;
-}
-
-.form-box input {
-    width: 100%;
-    /* Full width le sakein */
-    max-width: 350px;
-    /* Par bahut zyada bade na ho jayein */
-    margin-bottom: 20px;
-    /* Inputs ke beech gap ke liye (Sabse important) */
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-sizing: border-box;
-    /* Padding se width na badhe isliye */
-}
-
-.form-box button {
-    width: 100%;
-    max-width: 350px;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    background: black;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.form-box button:hover {
-
-    background: #058a6d;
-}
-
-.form-box p {
-    margin-top: 15px;
+.modern-feature-list li {
     font-size: 14px;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1.5;
 }
 
-.form-box span {
-    color: #00a884;
-    cursor: pointer;
+.bullet-star {
+    color: #10b981;
+    /* Clean R-chat Green Theme star */
     font-weight: bold;
 }
 
-.form-box span:hover {
-    text-decoration: underline;
+.left-footer a {
+    font-size: 13px;
+    color: #10b981;
+    text-decoration: none;
+    font-weight: 500;
 }
 
 
-/* NEW CSSS//////// */
-
-
-/* --- Desktop Styles (70vw width wala) --- */
-.custom-dialog .MuiDialog-paper {
-    display: flex;
-    flex-direction: row;
-    width: 85vw;
-    /* Thoda wide rakha hai */
-    max-width: 1000px;
-    height: auto;
-    min-height: 600px;
-    max-height: 95vh;
-    border-radius: 12px;
-    overflow-y: auto;
-}
-
-/* --- Left Panel (Text & Info) --- */
-.login-left-panel {
-    flex: 1.2;  /* Info ko thodi zyada jagah di hai */
-    height: auto;
-    padding: 40px;
-    background-color: #f0f2f5;
-}
-
-.login-left-panel h2 {
-    font-size: 26px;
-    margin-bottom: 15px;
-}
-
-.login-left-panel ul li {
-    font-size: 15px;
-    margin-bottom: 12px;
-}
-
-/* --- Right Panel (Form) --- */
+   /* RIGHT PANEL (INPUT FORM) */
+  
 .login-right-panel {
     flex: 1;
+    padding: 45px;
     display: flex;
     flex-direction: column;
-    /* Sabse important: Elements ko upar-niche karne ke liye */
-    align-items: center;
-    /* Horizontal center ke liye */
     justify-content: center;
-    /* Vertical center ke liye */
-    padding: 20px;
-    background: #fff;
+    align-items: center;
+    background-color: #ffffff;
 }
 
-/* --- Mobile Responsive (Stacked with Text) --- */
+/* Mobile Brand Header (Desktop par hidden) */
+.mobile-brand-header {
+    display: none;
+}
+
+.form-box {
+    width: 100%;
+    max-width: 320px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-box h2 {
+    font-size: 26px;
+    color: #0f172a;
+    margin: 0 0 6px 0;
+    font-weight: 700;
+    text-align: left;
+}
+
+.form-subtitle {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 25px 0;
+}
+
+/* Modern Minimalist Input Fields */
+.modern-input {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #0f172a;
+    background-color: #ffffff;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.modern-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+}
+
+/* Modern Shiny Button */
+.modern-submit-btn {
+    width: 100%;
+    padding: 14px;
+    background-color: #10b981;
+    /* Premium Brand Emerald Green */
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transition: all 0.2s ease;
+    margin-top: 8px;
+}
+
+.modern-submit-btn:hover {
+    background-color: #059669;
+    transform: translateY(-1px);
+}
+
+.modern-submit-btn:active {
+    transform: translateY(0);
+}
+
+.toggle-auth-text {
+    font-size: 14px;
+    color: #64748b;
+    text-align: center;
+    margin-top: 25px;
+}
+
+.toggle-auth-text span {
+    color: #10b981;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.toggle-auth-text span:hover {
+    text-decoration: underline;
+    color: #059669;
+}
+
+
+
+   /* 📱 MOBILE RESPONSIVENESS (Screens smaller than 768px) */
+
 @media (max-width: 768px) {
-    .custom-dialog .MuiDialog-paper {
-        flex-direction: column;
-        /* Upar-niche layout */
-        width: 95vw;
-        height: auto;
+    .custom-dialog .MuiPaper-root {
+        max-width: 100% !important;
+        margin: 16px !important;
+        border-radius: 16px !important;
+        /* 🟢 Mobile par bhi outline strict remove rakhein */
+        outline: none !important;
+        border: none !important;
     }
 
     .login-container {
         flex-direction: column;
+        height: auto;
     }
 
+    /* Left panel completely hidden for clean interface on small phones */
     .login-left-panel {
-        padding: 25px 20px;
-        /* Mobile par padding kam */
-        text-align: left;
-        /* Text ko left hi rakha hai */
-    }
-
-    .login-left-panel h2 {
-        font-size: 22px;
-        /* Mobile par heading thodi choti */
-        margin-bottom: 10px;
-    }
-
-    .login-left-panel p {
-        font-size: 14px;
-        margin-bottom: 15px;
-    }
-
-    .login-left-panel ul {
-        margin-top: 15px;
-        padding-left: 20px;
         display: none;
-        /* Bullet points dikhne ke liye */
     }
 
+    .login-right-panel {
+        padding: 40px 24px;
+        width: 100%;
+        box-sizing: border-box;
+    }
 
-    /* .login-left-panel ul li {
-        font-size: 13px;
-        margin-bottom: 8px;
-    } */
+    /* Mobile logo structure active */
+    .mobile-brand-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 25px;
+    }
 
-    .wp-logo-container {
-        height: 60px;
-        /* Logo area chota kiya */
+    /* 🟢 Mobile logo size matching clean text */
+    .mobile-logo {
+        height: 70px;
+        /* 65px se thoda crisp kiya */
+        width: auto;
+        object-fit: contain;
+    }
+
+    .mobile-brand-header h3 {
+        margin: 0;
+        font-size: 20px;
+        color: #0f172a;
+        font-weight: 700;
     }
 
     .form-box {
-        padding: 20px 10px;
-        margin-top: 0;
-        /* Extra margin hataya */
+        max-width: 100%;
+        /* Spreads nicely across phone screen widths */
     }
 
-    .form-box input,
-    .form-box button {
-        width: 100% !important;
-        /* Mobile par input full width */
+    .form-box h2 {
+        text-align: center;
+    }
+
+    .form-subtitle {
+        text-align: center;
+        margin-bottom: 20px;
     }
 }
