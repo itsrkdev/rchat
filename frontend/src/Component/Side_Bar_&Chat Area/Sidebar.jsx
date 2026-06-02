@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X } from "lucide-react";
+import { Phone, MessageSquareText, CircleFadingPlus, Users, MessageCircleCode, Settings, MessageSquarePlus, EllipsisVertical, PhoneOff, X,Video } from "lucide-react";
 import "./Sidebar.css";
 import io from "socket.io-client";
 import { useNavigate } from "react-router-dom";
@@ -1130,7 +1130,7 @@ const handleUnblockUser = async (unblockUserId) => {
 
                                 {/* Call Button (Sirf tab chalega jab kisi ne block na kiya ho) */}
                                 {!(currentUser?.blockedUsers?.includes(selectedChat._id) || selectedChat?.blockedUsers?.includes(currentUser?._id)) && (
-                                    <button onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>📞</button>
+                                    <button onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}><Video size={20} /> </button>
                                 )}
 
                                 {/* ⭐ NEW: DYNAMIC BLOCK/UNBLOCK BUTTON ⭐ */}
