@@ -279,60 +279,6 @@ export default function Sidebar() {
 }, [selectedChat, currentUser, token]);
 
 
-
-
-
-
-
-    
-    // useEffect(() => {
-    //     if (!selectedChat || !currentUser) return;
-
-    //     async function loadMessages() {
-    //         const res = await fetch(`${backendUrl}/api/chats/${selectedChat._id}`, {
-    //             headers: { Authorization: `Bearer ${token}` }
-    //         });
-
-    //         const data = await res.json();
-
-    //         // Filter out messages deleted by the current user
-    //         const filteredMessages = data.filter(
-    //             m => !m.deletedBy.includes(currentUser._id)
-    //         );
-
-    //         // Right panel messages
-    //         setMessages(
-    //             filteredMessages.map(m => ({
-    //                 _id: m._id,
-    //                 sender: m.sender,
-    //                 message: m.message,
-    //                 file: m.file,
-    //                 createdAt: m.createdAt,
-    //                 type: m.sender === currentUser._id ? "sent" : "received"
-    //             }))
-    //         );
-
-    //         // Sidebar last message preview
-    //         const lastMsgMap = {};
-    //         filteredMessages.forEach(msg => {
-    //             const chatId =
-    //                 msg.sender === currentUser._id ? msg.receiver : msg.sender;
-
-    //             lastMsgMap[chatId] =
-    //                 msg.message || (msg.file ? "📎 File" : "");
-    //         });
-
-    //         setLastMessages(prev => ({
-    //             ...prev,
-    //             ...lastMsgMap
-    //         }));
-    //     }
-
-    //     loadMessages();
-    // }, [selectedChat, currentUser, token]);
-
-
-
     // Send message
     const sendMsg = async () => {
         // 1. Files fetch karein
@@ -1364,4 +1310,3 @@ useEffect(() => {
 
     );
 }
-
