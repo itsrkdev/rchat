@@ -21,6 +21,8 @@ export default function Sidebar() {
     const [messages, setMessages] = useState([]);
     const [inp, setInp] = useState("");
     const [onlineUsers, setOnlineUsers] = useState([]); // track online userIds
+    // Check karein kya yeh state pehle se bani hai? Agar nahi bani, toh add karein:
+    const [isBlocked, setIsBlocked] = useState(false);
 
     const [lastMessages, setLastMessages] = useState({});
     const [unreadMessages, setUnreadMessages] = useState({});
@@ -213,7 +215,7 @@ export default function Sidebar() {
 
     // Load chat messages when selecting a chat
 
-    useEffect(() => {
+  useEffect(() => {
     if (!selectedChat || !currentUser) return;
 
     async function loadMessages() {
@@ -224,18 +226,16 @@ export default function Sidebar() {
 
             const data = await res.json();
 
-            // 🟢 1. REFRESH PAR BLOCK STATUS SYNC KAREIN
-            // (Agar backend se isBlocked true aata hai toh true set hoga, warna false)
-            if (data && typeof data === 'object' && 'isBlocked' in data) {
-                setIsBlocked(data.isBlocked); 
-                // Agar aapne blockedBy ki state banayi hai toh ise bhi set kar sakte hain:
-                // setBlockedBy(data.blockedBy);
+            // 🟢 REFRESH PAR BLOCK STATUS SYNC KAREIN
+            // Agar backend se isBlocked true aata hai aur block karne wala samne wala hai,
+            // toh usey selectedChat mein runtime flag (isMeBlocked) dekar set karenge.
+            if (data && typeof data === 'object' && data.isBlocked && data.blockedBy !== currentUser._id) {
+                setSelectedChat(prev => prev ? { ...prev, isMeBlocked: true } : prev);
             } else {
-                setIsBlocked(false);
+                setSelectedChat(prev => prev ? { ...prev, isMeBlocked: false } : prev);
             }
 
-            // 🟢 2. MESSAGES ARRAY NIKALEIN 
-            // Agar data ek object hai jisme .messages hai toh wo use karein, warna fallback to data khud agar wo array hai
+            // 🟢 MESSAGES ARRAY NIKALEIN 
             const rawMessages = data.messages ? data.messages : (Array.isArray(data) ? data : []);
 
             // Filter out messages deleted by the current user
@@ -276,7 +276,7 @@ export default function Sidebar() {
     }
 
     loadMessages();
-}, [selectedChat, currentUser, token]);
+}, [selectedChat?._id, currentUser?._id, token]); // 🟢 IDs lagayi taaki selectedChat set hone par infinite loop na bane
 
 
     // Send message
@@ -934,7 +934,7 @@ export default function Sidebar() {
 
     ///newwwwwwwwwwwwwww
 
-    const handleBlockUser = async (blockUserId) => {
+ const handleBlockUser = async (blockUserId) => {
     try {
         const response = await fetch(`${backendUrl}/api/auth/block-user`, {
             method: 'POST',
@@ -948,11 +948,12 @@ export default function Sidebar() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
-        // 🟢 YEH LINE ADD KAREIN: Samne wale ko signal bhejo ki mene block kar diya
+        // Samne wale ko signal bhejo ki mene block kar diya
         if (socket) {
             socket.emit("blockUser", { to: blockUserId, from: currentUser._id });
         }
 
+        // Current logged-in user ki block list local state update karein
         setCurrentUser(prev => ({
             ...prev,
             blockedUsers: [...(prev.blockedUsers || []), blockUserId]
@@ -978,7 +979,7 @@ const handleUnblockUser = async (unblockUserId) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
-        // 🟢 YEH LINE ADD KAREIN: Samne wale ko signal bhejo ki mene unblock kar diya
+        // Samne wale ko signal bhejo ki mene unblock kar diya
         if (socket) {
             socket.emit("unblockUser", { to: unblockUserId, from: currentUser._id });
         }
@@ -994,64 +995,47 @@ const handleUnblockUser = async (unblockUserId) => {
     }
 };
 
-    
-
-// 🟢 Block/Unblock Ke Liye Alag Se Socket Listener
+// 🟢 FIX: Block/Unblock Ke Liye Updated Socket Listener (Bina setIsBlocked Ke)
 useEffect(() => {
     if (!socket || !currentUser?._id || !selectedChat?._id) return;
 
-    // Purane listeners ko pehle clean karein (For safety)
+    // Purane listeners ko pehle clean karein
     socket.off("userBlockedMe");
     socket.off("userUnblockedMe");
 
     // 1. Jab koi aapko REAL-TIME mein block karega
     socket.on("userBlockedMe", ({ blockedBy }) => {
-        // Check karein ki kya block karne wala wahi user hai jiski chat abhi khuli hai
         if (String(selectedChat._id) === String(blockedBy)) {
-            
-            // 🟢 1. Input box ko instantly gayab karne ke liye state trigger karein
-            setIsBlocked(true);
-
-            // 2. Aapka purana selected chat state update logic
             setSelectedChat(prev => {
-                if (prev && String(prev._id) === String(blockedBy)) {
-                    return {
-                        ...prev,
-                        blockedUsers: [...(prev.blockedUsers || []), String(currentUser._id)]
-                    };
-                }
-                return prev;
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    isMeBlocked: true, // 🟢 Input box ko instantly handle karne ka flag
+                    blockedUsers: [...(prev.blockedUsers || []), String(currentUser._id)]
+                };
             });
         }
     });
 
     // 2. Jab koi aapko REAL-TIME mein unblock karega
     socket.on("userUnblockedMe", ({ unblockedBy }) => {
-        // Check karein ki kya unblock karne wala wahi user hai jiski chat abhi khuli hai
         if (String(selectedChat._id) === String(unblockedBy)) {
-            
-            // 🟢 1. Input box ko instantly wapas laane ke liye state trigger karein
-            setIsBlocked(false);
-
-            // 2. Aapka purana selected chat state update logic
             setSelectedChat(prev => {
-                if (prev && String(prev._id) === String(unblockedBy)) {
-                    return {
-                        ...prev,
-                        blockedUsers: (prev.blockedUsers || []).filter(id => String(id) !== String(currentUser._id))
-                    };
-                }
-                return prev;
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    isMeBlocked: false, // 🟢 Input box ko instantly wapas lane ka flag
+                    blockedUsers: (prev.blockedUsers || []).filter(id => String(id) !== String(currentUser._id))
+                };
             });
         }
     });
 
-    // Cleanup functions jab component unmount ho ya dependencies badlein
     return () => {
         socket.off("userBlockedMe");
         socket.off("userUnblockedMe");
     };
-}, [socket, currentUser, selectedChat, setSelectedChat]); // 🟢 dependency mein selectedChat zaroori hai kyunki hum top par check kar rahe hain
+}, [socket, currentUser?._id, selectedChat?._id]); // 🟢 Fixed dependency tracking IDs to prevent looping
     
   
 
@@ -1266,33 +1250,36 @@ useEffect(() => {
                             </div>
 
                             {/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
-                            {currentUser?.blockedUsers?.includes(selectedChat._id) ? (
-                                <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'gray', fontStyle: 'italic', background: '#f0f0f0' }}>
-                                    You have blocked this user. Unblock to send messages.
-                                </div>
-                            ) : selectedChat?.blockedUsers?.includes(currentUser?._id) ? (
-                                <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'red', fontStyle: 'italic', background: '#ffebeb' }}>
-                                    You can no longer reply to this conversation.
-                                </div>
-                            ) : (
-                                <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} id="chat-file" onChange={(e) => setFile(e.target.files[0])} />
-                                    <label htmlFor="chat-file" style={{ cursor: 'pointer', fontSize: '20px' }}>{file ? "✅" : "📎"}</label>
 
-                                    <input
-                                        type="text"
-                                        value={inp}
-                                        placeholder={file ? `File: ${file.name}` : "Type a message"}
-                                        onChange={(e) => setInp(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === "Enter") sendMsg(); }}
-                                        style={{ flex: 1 }}
-                                    />
+                            {/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
+{currentUser?.blockedUsers?.includes(selectedChat?._id) ? (
+    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'gray', fontStyle: 'italic', background: '#f0f0f0', borderRadius: '8px' }}>
+        You have blocked this user. Unblock to send messages.
+    </div>
+) : (selectedChat?.blockedUsers?.includes(currentUser?._id) || selectedChat?.isMeBlocked) ? (
+    /* 🟢 Backend ya Socket se temporary block indicator checking jod di */
+    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'red', fontStyle: 'italic', background: '#ffebeb', borderRadius: '8px' }}>
+        You can no longer reply to this conversation.
+    </div>
+) : (
+    <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} id="chat-file" onChange={(e) => setFile(e.target.files[0])} />
+        <label htmlFor="chat-file" style={{ cursor: 'pointer', fontSize: '20px' }}>{file ? "✅" : "📎"}</label>
 
-                                    <button onClick={recording ? stopRecording : startRecording}>{recording ? "⏹ Stop" : "🎤"}</button>
-                                    {audioBlob && <button onClick={sendVoice}>Send Voice</button>}
-                                    <button onClick={sendMsg}>Send</button>
-                                </div>
-                            )}
+        <input
+            type="text"
+            value={inp}
+            placeholder={file ? `File: ${file.name}` : "Type a message"}
+            onChange={(e) => setInp(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") sendMsg(); }}
+            style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #ccc' }}
+        />
+
+        <button onClick={recording ? stopRecording : startRecording}>{recording ? "⏹ Stop" : "🎤"}</button>
+        {audioBlob && <button onClick={sendVoice}>Send Voice</button>}
+        <button onClick={sendMsg}>Send</button>
+    </div>
+)}
 
                         </>
                     ) : (
