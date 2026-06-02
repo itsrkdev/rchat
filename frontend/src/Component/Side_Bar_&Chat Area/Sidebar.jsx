@@ -212,18 +212,34 @@ export default function Sidebar() {
 
 
     // Load chat messages when selecting a chat
-    useEffect(() => {
-        if (!selectedChat || !currentUser) return;
 
-        async function loadMessages() {
+    useEffect(() => {
+    if (!selectedChat || !currentUser) return;
+
+    async function loadMessages() {
+        try {
             const res = await fetch(`${backendUrl}/api/chats/${selectedChat._id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
             const data = await res.json();
 
+            // 🟢 1. REFRESH PAR BLOCK STATUS SYNC KAREIN
+            // (Agar backend se isBlocked true aata hai toh true set hoga, warna false)
+            if (data && typeof data === 'object' && 'isBlocked' in data) {
+                setIsBlocked(data.isBlocked); 
+                // Agar aapne blockedBy ki state banayi hai toh ise bhi set kar sakte hain:
+                // setBlockedBy(data.blockedBy);
+            } else {
+                setIsBlocked(false);
+            }
+
+            // 🟢 2. MESSAGES ARRAY NIKALEIN 
+            // Agar data ek object hai jisme .messages hai toh wo use karein, warna fallback to data khud agar wo array hai
+            const rawMessages = data.messages ? data.messages : (Array.isArray(data) ? data : []);
+
             // Filter out messages deleted by the current user
-            const filteredMessages = data.filter(
+            const filteredMessages = rawMessages.filter(
                 m => !m.deletedBy.includes(currentUser._id)
             );
 
@@ -253,10 +269,67 @@ export default function Sidebar() {
                 ...prev,
                 ...lastMsgMap
             }));
+            
+        } catch (error) {
+            console.error("Error loading chat data:", error);
         }
+    }
 
-        loadMessages();
-    }, [selectedChat, currentUser, token]);
+    loadMessages();
+}, [selectedChat, currentUser, token]);
+
+
+
+
+
+
+
+    
+    // useEffect(() => {
+    //     if (!selectedChat || !currentUser) return;
+
+    //     async function loadMessages() {
+    //         const res = await fetch(`${backendUrl}/api/chats/${selectedChat._id}`, {
+    //             headers: { Authorization: `Bearer ${token}` }
+    //         });
+
+    //         const data = await res.json();
+
+    //         // Filter out messages deleted by the current user
+    //         const filteredMessages = data.filter(
+    //             m => !m.deletedBy.includes(currentUser._id)
+    //         );
+
+    //         // Right panel messages
+    //         setMessages(
+    //             filteredMessages.map(m => ({
+    //                 _id: m._id,
+    //                 sender: m.sender,
+    //                 message: m.message,
+    //                 file: m.file,
+    //                 createdAt: m.createdAt,
+    //                 type: m.sender === currentUser._id ? "sent" : "received"
+    //             }))
+    //         );
+
+    //         // Sidebar last message preview
+    //         const lastMsgMap = {};
+    //         filteredMessages.forEach(msg => {
+    //             const chatId =
+    //                 msg.sender === currentUser._id ? msg.receiver : msg.sender;
+
+    //             lastMsgMap[chatId] =
+    //                 msg.message || (msg.file ? "📎 File" : "");
+    //         });
+
+    //         setLastMessages(prev => ({
+    //             ...prev,
+    //             ...lastMsgMap
+    //         }));
+    //     }
+
+    //     loadMessages();
+    // }, [selectedChat, currentUser, token]);
 
 
 
@@ -975,51 +1048,66 @@ const handleUnblockUser = async (unblockUserId) => {
     }
 };
 
-
-
     
-    // 🟢 Block/Unblock Ke Liye Alag Se Socket Listener
-useEffect(() => {
-    if (!socket || !currentUser?._id) return;
 
-    // Purane listeners ko pehle clean karein
+// 🟢 Block/Unblock Ke Liye Alag Se Socket Listener
+useEffect(() => {
+    if (!socket || !currentUser?._id || !selectedChat?._id) return;
+
+    // Purane listeners ko pehle clean karein (For safety)
     socket.off("userBlockedMe");
     socket.off("userUnblockedMe");
 
     // 1. Jab koi aapko REAL-TIME mein block karega
     socket.on("userBlockedMe", ({ blockedBy }) => {
-        setSelectedChat(prev => {
-            if (prev && String(prev._id) === String(blockedBy)) {
-                return {
-                    ...prev,
-                    blockedUsers: [...(prev.blockedUsers || []), String(currentUser._id)]
-                };
-            }
-            return prev;
-        });
+        // Check karein ki kya block karne wala wahi user hai jiski chat abhi khuli hai
+        if (String(selectedChat._id) === String(blockedBy)) {
+            
+            // 🟢 1. Input box ko instantly gayab karne ke liye state trigger karein
+            setIsBlocked(true);
+
+            // 2. Aapka purana selected chat state update logic
+            setSelectedChat(prev => {
+                if (prev && String(prev._id) === String(blockedBy)) {
+                    return {
+                        ...prev,
+                        blockedUsers: [...(prev.blockedUsers || []), String(currentUser._id)]
+                    };
+                }
+                return prev;
+            });
+        }
     });
 
     // 2. Jab koi aapko REAL-TIME mein unblock karega
     socket.on("userUnblockedMe", ({ unblockedBy }) => {
-        setSelectedChat(prev => {
-            if (prev && String(prev._id) === String(unblockedBy)) {
-                return {
-                    ...prev,
-                    blockedUsers: (prev.blockedUsers || []).filter(id => String(id) !== String(currentUser._id))
-                };
-            }
-            return prev;
-        });
+        // Check karein ki kya unblock karne wala wahi user hai jiski chat abhi khuli hai
+        if (String(selectedChat._id) === String(unblockedBy)) {
+            
+            // 🟢 1. Input box ko instantly wapas laane ke liye state trigger karein
+            setIsBlocked(false);
+
+            // 2. Aapka purana selected chat state update logic
+            setSelectedChat(prev => {
+                if (prev && String(prev._id) === String(unblockedBy)) {
+                    return {
+                        ...prev,
+                        blockedUsers: (prev.blockedUsers || []).filter(id => String(id) !== String(currentUser._id))
+                    };
+                }
+                return prev;
+            });
+        }
     });
 
-    // Cleanup functions jab component unmount ho
+    // Cleanup functions jab component unmount ho ya dependencies badlein
     return () => {
         socket.off("userBlockedMe");
         socket.off("userUnblockedMe");
     };
-}, [socket, currentUser, setSelectedChat]); // Yeh dependencies zaroori hain
-
+}, [socket, currentUser, selectedChat, setSelectedChat]); // 🟢 dependency mein selectedChat zaroori hai kyunki hum top par check kar rahe hain
     
+  
 
     return (
         <div className="container">
