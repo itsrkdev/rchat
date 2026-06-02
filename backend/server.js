@@ -160,6 +160,21 @@ io.on("connection", (socket) => {
         // }
     });
 
+     // 🟢 Backend Socket Server ke andar (io.on("connection"))
+socket.on("blockUser", ({ to, from }) => {
+    console.log(`User ${from} blocked ${to}`);
+    // Room (User ID) par direct emit karein, isse socket ID ki dependency khatam ho jati hai
+    io.to(to).emit("userBlockedMe", { blockedBy: from });
+});
+
+socket.on("unblockUser", ({ to, from }) => {
+    console.log(`User ${from} unblocked ${to}`);
+    // Room (User ID) par direct emit karein
+    io.to(to).emit("userUnblockedMe", { unblockedBy: from });
+});
+
+    
+
     socket.on("callRejected", ({ to }) => {
         const callerSocketId = global.users[to];
 
