@@ -225,6 +225,7 @@ export default function Sidebar() {
             });
 
             const data = await res.json();
+            console.log("👉 REFRESH PAR BACKEND KA DATA:", data);
 
             // 🟢 REFRESH PAR BLOCK STATUS SYNC KAREIN
             // Agar backend se isBlocked true aata hai aur block karne wala samne wala hai,
