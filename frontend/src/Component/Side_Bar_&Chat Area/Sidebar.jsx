@@ -103,7 +103,7 @@ export default function Sidebar() {
         localStorage.removeItem("token");
         navigate("/", { replace: true });
     };
-    
+
 
     const openModal = (fileUrl) => {
         setSelectedImage(fileUrl); // Kyunki URL hum pehle hi sahi karke bhej rahe hain
@@ -805,7 +805,7 @@ export default function Sidebar() {
     useEffect(() => {
         if (isCalling && localStream && localVideoRef.current) {
             localVideoRef.current.srcObject = localStream;
-            
+
         }
     }, [isCalling, localStream]);
 
@@ -913,14 +913,52 @@ export default function Sidebar() {
     };
 
 
+    ///newwwwwwwwwwwwwww
+    const handleBlockUser = async (blockUserId) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/auth/block-user`, {
+                myId: currentUser._id,
+                blockUserId: blockUserId
+            });
+
+            // Local state ko turant update karna taaki UI bina reload hue change ho jaye
+            setCurrentUser(prev => ({
+                ...prev,
+                blockedUsers: [...(prev.blockedUsers || []), blockUserId]
+            }));
+
+            alert(response.data.message);
+        } catch (error) {
+            console.error("Block User Error:", error);
+        }
+    };
+
+    const handleUnblockUser = async (unblockUserId) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/auth/unblock-user`, {
+                myId: currentUser._id,
+                unblockUserId: unblockUserId
+            });
+
+            // Local state se ID remove karein
+            setCurrentUser(prev => ({
+                ...prev,
+                blockedUsers: prev.blockedUsers.filter(id => id !== unblockUserId)
+            }));
+
+            alert(response.data.message);
+        } catch (error) {
+            console.error("Unblock User Error:", error);
+        }
+    };
+
+
     return (
         <div className="container">
 
-
             {/* Incoming Call UI */}
             {incomingCall && String(incomingCall.to) === String(currentUser?._id) && (
-                <div className="call-incoming-overlay"
-                >
+                <div className="call-incoming-overlay">
                     <div className="call-card">
                         <h4>{incomingCall.name} is calling...</h4>
                         <div className="call-btns">
@@ -931,43 +969,22 @@ export default function Sidebar() {
                 </div>
             )}
 
-            {/* Active Video Call UI - Sirf unhe dikhega jo actually call par hain */}
+            {/* Active Video Call UI */}
             {isCalling && (
                 <div className="video-call-window">
-
-                    {/* Remote Video - Samne wale ka face - Puri screen */}
-                    <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        className="remote-vid"
-                    />
-
-                    {/* Local Video - Apna face - Chota box */}
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="local-vid"
-                    />
-
+                    <video ref={remoteVideoRef} autoPlay playsInline className="remote-vid" />
+                    <video ref={localVideoRef} autoPlay playsInline muted className="local-vid" />
                     <button
                         className="end-call-circle"
                         onClick={endCall}
-                        onTouchEnd={(e) => {   // ⭐ Mobile touch fix
-                            e.preventDefault();
-                            endCall();
-                        }}
+                        onTouchEnd={(e) => { e.preventDefault(); endCall(); }}
                     >
                         <PhoneOff size={24} />
                     </button>
                 </div>
             )}
 
-
-
-            {/* --- IMAGE MODAL --- */}
+            {/* IMAGE MODAL */}
             {selectedImage && (
                 <div className="image-modal" onClick={() => setSelectedImage(null)}>
                     <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -977,57 +994,31 @@ export default function Sidebar() {
                 </div>
             )}
 
-
-
             {/* Sidebar */}
             <div className={`side-bar ${isChatOpen ? "mobile-hide" : ""}`}>
                 <div className="top-icons">
-                    {/* <p><MessageSquareText /><span>Chats</span></p> */}
                     <p style={{ position: "relative" }}>
                         <MessageSquareText />
-                        {/* <span>Chats</span> */}
-                        {unreadCount > 0 && (
-                            <span className="chat-badge">
-                                {unreadCount}
-                            </span>
-                        )}
+                        {unreadCount > 0 && <span className="chat-badge">{unreadCount}</span>}
                     </p>
                 </div>
 
-                {/* Bottom - Profile + Logout */}
                 {currentUser && (
                     <div className="bottom-icons">
                         <div className="profile-section">
-                            <input
-                                type="file"
-                                id="avatarUpload"          // add this
-                                accept="image/*"
-                                style={{ display: "none" }} // hide the actual file input
-                                onChange={handleAvatarChange}  // handle file selection
-                            />
+                            <input type="file" id="avatarUpload" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
                             <label htmlFor="avatarUpload" className="avatar-label">
-
                                 <img
-                                    src={
-                                        currentUser.avatar
-                                            ? currentUser.avatar.startsWith("http")
-                                                ? currentUser.avatar // Agar Cloudinary link hai toh direct use karein
-                                                : `${backendUrl}${currentUser.avatar}` // Agar purani local file hai toh backendUrl jodein
-                                            : "./user.png" // Fallback image
-                                    }
+                                    src={currentUser.avatar ? (currentUser.avatar.startsWith("http") ? currentUser.avatar : `${backendUrl}${currentUser.avatar}`) : "./user.png"}
                                     alt="avatar"
                                     className="sidebar-avatar"
                                 />
-
                             </label>
                             <span>Dp</span>
                         </div>
-                        <button className="chat-logout-btn" onClick={handleLogout}>
-                            Logout
-                        </button>
+                        <button className="chat-logout-btn" onClick={handleLogout}>Logout</button>
                     </div>
                 )}
-
             </div>
 
             {/* Chat section */}
@@ -1044,309 +1035,167 @@ export default function Sidebar() {
                         </div>
                     </div>
 
-                    {/* newwwwwwwwwwww */}
-
                     <div className={`chat-panel ${theme}`}>
-                        {/* Search Box */}
                         <div className="search">
-                            <input
-                                type="text"
-                                placeholder="Search or start new chat"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                            <input type="text" placeholder="Search or start new chat" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
 
-                        {/* Archived Chats Button (Top of Chat List) */}
                         <div className="archived-toggle">
                             <button onClick={() => setShowArchived(prev => !prev)}>
-                                📦 Archived Chats {archivedChats.length > 0 ? `(${archivedChats.length})` : ""}
-                                {showArchived ? " ⬆️" : " ⬇️"}
+                                📦 Archived Chats {archivedChats.length > 0 ? `(${archivedChats.length})` : ""} {showArchived ? " ⬆️" : " ⬇️"}
                             </button>
                         </div>
 
-                        {/* Archived Chats (Collapsible, Top Section) */}
                         {showArchived && (
                             <div className="archived-chats">
-                                {users
-                                    .filter(u => archivedChats.includes(u._id))
-                                    .map((chat, k) => (
-
-                                        <div className="chat-item archived" onClick={() => setSelectedChat(chat)}>
-
-                                            <img
-                                                src={
-                                                    chat.avatar
-                                                        ? chat.avatar.startsWith("http")
-                                                            ? chat.avatar  // Direct Cloudinary link use hoga
-                                                            : `${backendUrl}${chat.avatar}` // Local file ke liye backendUrl judega
-                                                        : "./user.png"
-                                                }
-                                                alt="avatar"
-                                                className="chat-avatar"
-                                            />
-
-                                            <div className="chat-info">
-                                                <span className="chat-name">{chat.name}</span>
-                                                <span className="chat-message">{lastMessages[chat._id] || "Start chatting..."}</span>
-                                            </div>
-                                            <button
-                                                className="archive-btn"
-                                                onClick={(e) => { e.stopPropagation(); handleArchive(chat._id); }}
-                                            >
-                                                <Archive size={18} />{archivedChats.includes(chat._id) ? "Unarchive" : "Archive"}
-                                            </button>
+                                {users.filter(u => archivedChats.includes(u._id)).map((chat, k) => (
+                                    <div key={k} className="chat-item archived" onClick={() => setSelectedChat(chat)}>
+                                        <img src={chat.avatar ? (chat.avatar.startsWith("http") ? chat.avatar : `${backendUrl}${chat.avatar}`) : "./user.png"} alt="avatar" className="chat-avatar" />
+                                        <div className="chat-info">
+                                            <span className="chat-name">{chat.name}</span>
+                                            <span className="chat-message">{lastMessages[chat._id] || "Start chatting..."}</span>
                                         </div>
-
-
-                                    ))}
+                                        <button className="archive-btn" onClick={(e) => { e.stopPropagation(); handleArchive(chat._id); }}><Archive size={18} />Unarchive</button>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
-                        {/* Normal Chats */}
                         <div className="chat-list">
-                            {users
-                                .filter(u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                                .map((chat, k) => (
-                                    <div
-                                        key={k}
-                                        className="chat-item"
-                                        onClick={() => {
-                                            setSelectedChat(chat);
-                                            setIsChatOpen(true); // <--- Ye line add karein (Mobile toggle ke liye)
-                                            setUnreadMessages(prev => {
-                                                const updated = { ...prev };
-                                                delete updated[chat._id];
-                                                return updated;
-                                            });
-                                        }}
-                                    >
-                                        <img
-                                            src={
-                                                chat.avatar
-                                                    ? chat.avatar.startsWith("http")
-                                                        ? chat.avatar  // Direct Cloudinary link use hoga
-                                                        : `${backendUrl}${chat.avatar}` // Local file ke liye backendUrl judega
-                                                    : "./user.png"
-                                            }
-                                            alt="avatar"
-                                            className="chat-avatar"
-                                        />
-
-
-                                        {onlineUsers.includes(chat._id) ? (
-                                            <span className="online-dot"></span>
-                                        ) : (
-                                            <span className="offline-dot"></span>
-                                        )}
-                                        <div className="chat-info">
-                                            <div className="chat-name-time">
-                                                <span className="chat-name">{chat.name}</span>
-
-                                            </div>
-                                            <div className={`chat-message ${unreadMessages[chat._id] ? "unread" : ""}`}>
-                                                {lastMessages[chat._id] || <span style={{ color: "gray" }}>Start chatting..</span>}
-                                            </div>
-                                        </div>
-                                        <button
-                                            className="archive-btn"
-                                            onClick={(e) => { e.stopPropagation(); handleArchive(chat._id); }}
-                                        >
-                                            <Archive size={18} />
-                                        </button>
+                            {users.filter(u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((chat, k) => (
+                                <div
+                                    key={k}
+                                    className="chat-item"
+                                    onClick={() => {
+                                        setSelectedChat(chat);
+                                        setIsChatOpen(true);
+                                        setUnreadMessages(prev => { const updated = { ...prev }; delete updated[chat._id]; return updated; });
+                                    }}
+                                >
+                                    <img src={chat.avatar ? (chat.avatar.startsWith("http") ? chat.avatar : `${backendUrl}${chat.avatar}`) : "./user.png"} alt="avatar" className="chat-avatar" />
+                                    {onlineUsers.includes(chat._id) ? <span className="online-dot"></span> : <span className="offline-dot"></span>}
+                                    <div className="chat-info">
+                                        <div className="chat-name-time"><span className="chat-name">{chat.name}</span></div>
+                                        <div className={`chat-message ${unreadMessages[chat._id] ? "unread" : ""}`}>{lastMessages[chat._id] || <span style={{ color: "gray" }}>Start chatting..</span>}</div>
                                     </div>
-                                ))}
+                                    <button className="archive-btn" onClick={(e) => { e.stopPropagation(); handleArchive(chat._id); }}><Archive size={18} /></button>
+                                </div>
+                            ))}
                         </div>
                     </div>
-
-
-
                 </div>
 
                 {/* Right panel */}
                 <div className={`right-panel ${isChatOpen ? "show-mobile" : "hidden-mobile"}`}>
                     {selectedChat ? (
                         <>
-
+                            {/* --- CHAT HEADER --- */}
                             <div className="chat-header">
-                                {/* MOBILE BACK BUTTON */}
-                                <button className="back-btn" onClick={handleBackToList}>
-                                    <X size={24} /> {/* Ya arrow icon use karein */}
-                                </button>
-                                <img
-                                    src={
-                                        selectedChat.avatar
-                                            ? selectedChat.avatar.startsWith("http")
-                                                ? selectedChat.avatar // Cloudinary ka direct link
-                                                : `${backendUrl}${selectedChat.avatar}` // Purana local path
-                                            : "./user.png" // Default image
-                                    }
-                                    alt="avatar"
-                                    className="header-avatar"
-                                />
-
-                                <div className="header-info">
+                                <button className="back-btn" onClick={handleBackToList}><X size={24} /></button>
+                                <img src={selectedChat.avatar ? (selectedChat.avatar.startsWith("http") ? selectedChat.avatar : `${backendUrl}${selectedChat.avatar}`) : "./user.png"} alt="avatar" className="header-avatar" />
+                                
+                                <div className="header-info" style={{ flex: 1 }}>
                                     <span className="header-name">{selectedChat.name}</span>
                                 </div>
 
-                                <button onClick={startCall}>📞</button>
-                            </div>
-                            <div className="messages">
+                                {/* Call Button (Sirf tab chalega jab kisi ne block na kiya ho) */}
+                                {!(currentUser?.blockedUsers?.includes(selectedChat._id) || selectedChat?.blockedUsers?.includes(currentUser?._id)) && (
+                                    <button onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}>📞</button>
+                                )}
 
+                                {/* ⭐ NEW: DYNAMIC BLOCK/UNBLOCK BUTTON ⭐ */}
+                                {currentUser?.blockedUsers?.includes(selectedChat._id) ? (
+                                    <button 
+                                        onClick={() => handleUnblockUser(selectedChat._id)} 
+                                        className="unblock-action-btn"
+                                        style={{ backgroundColor: '#25D366', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    >
+                                        Unblock
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => handleBlockUser(selectedChat._id)} 
+                                        className="block-action-btn"
+                                        style={{ backgroundColor: '#E53E3E', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    >
+                                        Block
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="messages">
                                 {messages.map((msg, index) => (
                                     <div key={index} className={`message ${msg.type}`}>
-
-                                        {/* 🎤 Voice message (only for .webm files) */}
                                         {msg.file && msg.file.endsWith(".webm") && (
-                                            <audio controls style={{ marginBottom: "10px" }}>
-                                                <source
-                                                    src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`}
-                                                    type="audio/webm"
-                                                />
-                                            </audio>
-
+                                            <audio controls style={{ marginBottom: "10px" }}><source src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`} type="audio/webm" /></audio>
                                         )}
-
-                                        {/* Show images or documents, but exclude .webm */}
                                         {msg.file && !msg.file.endsWith(".webm") && (
                                             <div className="file-msg-wrapper" style={{ marginBottom: "10px" }}>
                                                 {msg.file.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                                                     <div className="image-container modern-img-card">
-                                                        <img
-                                                            /* 🟢 1. Image src update kiya */
-                                                            src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`}
-                                                            alt="chat-img"
-                                                            className="chat-main-img"
-                                                        />
+                                                        <img src={msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`} alt="chat-img" className="chat-main-img" />
                                                         <div className="file-actions-overlay">
-                                                            <button
-                                                                className="action-btn view-btn"
-                                                                /* 🟢 2. View Modal ke liye full URL condition check */
-                                                                onClick={() => openModal(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`)}
-                                                            >
-                                                                <span className="icon">👁️</span> View
-                                                            </button>
-                                                            <button
-                                                                className="action-btn download-btn"
-                                                                /* 🟢 3. Download button (Image ke liye) URL condition check */
-                                                                onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
-                                                            >
-                                                                <span className="icon">⬇️</span> Save
-                                                            </button>
+                                                            <button className="action-btn view-btn" onClick={() => openModal(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`)}><span className="icon">👁️</span> View</button>
+                                                            <button className="action-btn download-btn" onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}><span className="icon">⬇️</span> Save</button>
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div
-                                                        className="document-container modern-doc-card"
-                                                        /* 🟢 4. Document card click par download URL condition check */
-                                                        onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}
-                                                    >
-                                                        <div className="doc-icon-wrapper">
-                                                            <span style={{ fontSize: "22px" }}>📄</span>
-                                                        </div>
+                                                    <div className="document-container modern-doc-card" onClick={() => handleDownload(msg.file.startsWith("http") ? msg.file : `${backendUrl}${msg.file}`, msg.file.split('/').pop())}>
+                                                        <div className="doc-icon-wrapper"><span style={{ fontSize: "22px" }}>📄</span></div>
                                                         <div className="doc-info">
                                                             <p className="doc-name">{msg.file.split('/').pop()}</p>
                                                             <small className="doc-status">Click to Download</small>
                                                         </div>
                                                         <div className="doc-download-icon">
-                                                            <svg
-                                                                width="20"
-                                                                height="20"
-                                                                viewBox="0 0 24 24"
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                strokeWidth="2"
-                                                            >
-                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4M7 10l5 5 5-5M12 15V3" />
-                                                            </svg>
+                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4M7 10l5 5 5-5M12 15V3" /></svg>
                                                         </div>
                                                     </div>
                                                 )}
                                             </div>
                                         )}
-
-
                                         {msg.message && <p className="text-content">{msg.message}</p>}
-
                                         <div className="message-footer">
-                                            <span className="message-time">
-                                                {msg.createdAt
-                                                    ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                                                    : ""}
-                                            </span>
-
-                                            {msg.type === "sent" && (
-                                                <button
-                                                    className="delete-msg-btn"
-                                                    onClick={() => deleteMessage(msg._id, selectedChat._id)}
-                                                >
-                                                    🗑
-                                                </button>
-                                            )}
+                                            <span className="message-time">{msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                                            {msg.type === "sent" && <button className="delete-msg-btn" onClick={() => deleteMessage(msg._id, selectedChat._id)}>🗑</button>}
                                         </div>
                                     </div>
                                 ))}
-                                {/* 🟢 YE WALI LINE MAP KE BAAD ADD KARNI HAI */}
                                 <div ref={messagesEndRef} />
-
                             </div>
 
-                            <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            {/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
+                            {currentUser?.blockedUsers?.includes(selectedChat._id) ? (
+                                <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'gray', fontStyle: 'italic', background: '#f0f0f0' }}>
+                                    You have blocked this user. Unblock to send messages.
+                                </div>
+                            ) : selectedChat?.blockedUsers?.includes(currentUser?._id) ? (
+                                <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'red', fontStyle: 'italic', background: '#ffebeb' }}>
+                                    You can no longer reply to this conversation.
+                                </div>
+                            ) : (
+                                <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} id="chat-file" onChange={(e) => setFile(e.target.files[0])} />
+                                    <label htmlFor="chat-file" style={{ cursor: 'pointer', fontSize: '20px' }}>{file ? "✅" : "📎"}</label>
 
-                                {/* Hidden File Input */}
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    multiple
-                                    style={{ display: "none" }}
-                                    id="chat-file"
-                                    onChange={(e) => setFile(e.target.files[0])} // Sirf UI mein dikhane ke liye ki file select hui hai
-                                />
+                                    <input
+                                        type="text"
+                                        value={inp}
+                                        placeholder={file ? `File: ${file.name}` : "Type a message"}
+                                        onChange={(e) => setInp(e.target.value)}
+                                        onKeyDown={(e) => { if (e.key === "Enter") sendMsg(); }}
+                                        style={{ flex: 1 }}
+                                    />
 
-                                {/* Paperclip Icon/Button for File */}
-                                <label htmlFor="chat-file" style={{ cursor: 'pointer', fontSize: '20px' }}>
-                                    {file ? "✅" : "📎"} {/* File select hone par icon badal jayega */}
-                                </label>
-
-                                {/* Text Input */}
-                                <input
-                                    type="text"
-                                    value={inp}
-                                    placeholder={file ? `File: ${file.name}` : "Type a message"}
-                                    onChange={(e) => setInp(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") sendMsg();
-                                    }}
-                                    style={{ flex: 1 }}
-                                />
-
-                                <button onClick={recording ? stopRecording : startRecording}>
-                                    {recording ? "⏹ Stop" : "🎤"}
-                                </button>
-
-                                {audioBlob && (
-                                    <button onClick={sendVoice}>Send Voice</button>
-                                )}
-
-                                <button onClick={sendMsg}>Send</button>
-                            </div>
+                                    <button onClick={recording ? stopRecording : startRecording}>{recording ? "⏹ Stop" : "🎤"}</button>
+                                    {audioBlob && <button onClick={sendVoice}>Send Voice</button>}
+                                    <button onClick={sendMsg}>Send</button>
+                                </div>
+                            )}
 
                         </>
                     ) : (
                         <div className="no-chat-selected">
-
-                            <img
-                                src={
-                                    currentUser?.avatar
-                                        ? currentUser.avatar.startsWith("http")
-                                            ? currentUser.avatar // Agar Cloudinary URL hai
-                                            : `${backendUrl}${currentUser.avatar}` // Agar local path hai
-                                        : "./user.png" // Agar avatar missing hai
-                                }
-                                alt="avatar"
-                                className="no-chat-image"
-                            />
-
+                            <img src={currentUser?.avatar ? (currentUser.avatar.startsWith("http") ? currentUser.avatar : `${backendUrl}${currentUser.avatar}`) : "./user.png"} alt="avatar" className="no-chat-image" />
                             <h4>Hello {currentUser?.name}</h4>
                             <h2>Welcome to R-Chat</h2>
                             <p>Select a chat from the list on the left to start messaging your friends instantly.</p>
@@ -1356,5 +1205,7 @@ export default function Sidebar() {
                 </div>
             </div>
         </div>
+
     );
 }
+
