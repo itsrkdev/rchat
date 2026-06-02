@@ -32,70 +32,63 @@ router.post("/", authMiddleware, uploadChat.array("file", 10), async (req, res) 
 
 // GET ROUTE: Waisa hi rahega jaise pehle tha
 
-// GET ROUTE: Messages fetch karne ke sath Block Status bhi check karega
-router.get("/:userId", authMiddleware, async (req, res) => {
-  const { userId } = req.params;
+// GET ROUTE: Messages fetch karne ke sath dynamic identity aur Block Status check karega
+router.get("/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const User = require("../Models/UserModel"); // Aapke User Model ka sahi path
+    const User = require("../Models/UserModel");
 
-    // 1. Current user aur samne wale user dono ka data nikalein
-    const currentUser = await User.findById(req.userId);
-    const targetUser = await User.findById(userId);
-
-    if (!currentUser || !targetUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    // 2. Check karein: Kya maine samne wale ko block kiya hai? Ya samne wale ne mujhe?
-    const iHaveBlocked = currentUser.blockedUsers.includes(userId);
-    const theyHaveBlocked = targetUser.blockedUsers.includes(req.userId);
-
-    const isBlocked = iHaveBlocked || theyHaveBlocked;
-
-    // 3. Messages find karne ka aapka purana logic
+    // 1. Messages find karne ka aapka purana logic
     const messages = await Chat.find({
       $or: [
-        { sender: req.userId, receiver: userId },
-        { sender: userId, receiver: req.userId }
+        { sender: req.userId, receiver: id },
+        { sender: id, receiver: req.userId }
       ],
       deletedBy: { $ne: req.userId }
     }).sort({ createdAt: 1 });
 
-    // 4. 🟢 BOHOT IMPORTANT: Response me object bhejenge jisme block ka sach hoga!
+    // 2. 🟢 IDENTITY SOLVER: 
+    // Agar id direct user ki hai toh thik, warna pehle message se saamne wale user ki asli ID pakdo
+    let targetUserId = id;
+    if (messages.length > 0) {
+      const firstMsg = messages[0];
+      targetUserId = firstMsg.sender.toString() === req.userId.toString() 
+        ? firstMsg.receiver.toString() 
+        : firstMsg.sender.toString();
+    }
+
+    // 3. Dono users ka data database se nikalenge
+    const currentUser = await User.findById(req.userId);
+    const targetUser = await User.findById(targetUserId);
+
+    let isBlocked = false;
+    let blockedBy = null;
+
+    // 4. Check karo ki kya dono me se kisi ne bhi block kiya hai
+    if (currentUser && targetUser) {
+      const iHaveBlocked = currentUser.blockedUsers.includes(targetUserId);
+      const theyHaveBlocked = targetUser.blockedUsers.includes(req.userId);
+
+      isBlocked = iHaveBlocked || theyHaveBlocked;
+      blockedBy = iHaveBlocked ? req.userId : (theyHaveBlocked ? targetUserId : null);
+    }
+
+    // 5. Frontend ko perfect object response bhejo
     res.json({
       messages: messages,
       isBlocked: isBlocked,
-      blockedBy: iHaveBlocked ? req.userId : (theyHaveBlocked ? userId : null)
+      blockedBy: blockedBy
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Backend GET error:", err);
     res.status(500).json({ message: "Server error" });
   }
 });
 
 
 
-// router.get("/:userId", authMiddleware, async (req, res) => {
-//   const { userId } = req.params;
-
-//   try {
-//     const messages = await Chat.find({
-//       $or: [
-//         { sender: req.userId, receiver: userId },
-//         { sender: userId, receiver: req.userId }
-//       ],
-//       deletedBy: { $ne: req.userId }
-//     }).sort({ createdAt: 1 });
-
-//     res.json(messages);
-
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// });
 
 // 🟢 DELETE ROUTE: Isme Cloudinary se media permanently destroy karne ka code jod diya hai
 router.delete("/:id", authMiddleware, async (req, res) => {
