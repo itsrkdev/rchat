@@ -215,7 +215,7 @@ export default function Sidebar() {
 
     // Load chat messages when selecting a chat
 
-  useEffect(() => {
+    useEffect(() => {
     if (!selectedChat || !currentUser) return;
 
     async function loadMessages() {
@@ -227,16 +227,24 @@ export default function Sidebar() {
             const data = await res.json();
             console.log("👉 REFRESH PAR BACKEND KA DATA:", data);
 
-            // 🟢 REFRESH PAR BLOCK STATUS SYNC KAREIN
-            // Agar backend se isBlocked true aata hai aur block karne wala samne wala hai,
-            // toh usey selectedChat mein runtime flag (isMeBlocked) dekar set karenge.
-            if (data && typeof data === 'object' && data.isBlocked && data.blockedBy !== currentUser._id) {
-                setSelectedChat(prev => prev ? { ...prev, isMeBlocked: true } : prev);
+            // 🟢 REFRESH PAR BLOCK STATUS SYNC KAREIN (UPDATED CONDITION)
+            if (data && typeof data === 'object' && data.isBlocked) {
+                setSelectedChat(prev => prev ? { 
+                    ...prev, 
+                    isBlocked: true, 
+                    blockedBy: data.blockedBy,
+                    isMeBlocked: data.blockedBy !== currentUser._id 
+                } : prev);
             } else {
-                setSelectedChat(prev => prev ? { ...prev, isMeBlocked: false } : prev);
+                setSelectedChat(prev => prev ? { 
+                    ...prev, 
+                    isBlocked: false, 
+                    blockedBy: null,
+                    isMeBlocked: false 
+                } : prev);
             }
 
-            // 🟢 MESSAGES ARRAY NIKALEIN 
+            // Messages array nikalna
             const rawMessages = data.messages ? data.messages : (Array.isArray(data) ? data : []);
 
             // Filter out messages deleted by the current user
@@ -277,7 +285,9 @@ export default function Sidebar() {
     }
 
     loadMessages();
-}, [selectedChat?._id, currentUser?._id, token]); // 🟢 IDs lagayi taaki selectedChat set hone par infinite loop na bane
+}, [selectedChat?._id, currentUser?._id, token]); // 🟢 IDs tracking to protect infinite loop
+
+ 
 
 
     // Send message
@@ -1252,18 +1262,20 @@ useEffect(() => {
 
                             {/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
 
-                            {/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
-{currentUser?.blockedUsers?.includes(selectedChat?._id) ? (
-    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'gray', fontStyle: 'italic', background: '#f0f0f0', borderRadius: '8px' }}>
+{/* --- MESSAGE INPUT (WITH BLOCK CHECK) --- */}
+{(currentUser?.blockedUsers?.includes(selectedChat?._id) || (selectedChat?.isBlocked && selectedChat?.blockedBy === currentUser?._id)) ? (
+    /* 🟢 Condition 1: Agar Maine block kiya hai (Local state se ya Refresh par Backend data se) */
+    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'gray', fontStyle: 'italic', background: '#f0f0f0', borderRadius: '8px', width: '100%' }}>
         You have blocked this user. Unblock to send messages.
     </div>
-) : (selectedChat?.blockedUsers?.includes(currentUser?._id) || selectedChat?.isMeBlocked) ? (
-    /* 🟢 Backend ya Socket se temporary block indicator checking jod di */
-    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'red', fontStyle: 'italic', background: '#ffebeb', borderRadius: '8px' }}>
+) : (selectedChat?.blockedUsers?.includes(currentUser?._id) || (selectedChat?.isBlocked && selectedChat?.blockedBy !== currentUser?._id) || selectedChat?.isMeBlocked) ? (
+    /* 🟢 Condition 2: Agar Saamne wale ne block kiya hai (Local state, Refresh data ya Real-time socket se) */
+    <div className="blocked-bar" style={{ textAlign: 'center', padding: '15px', color: 'red', fontStyle: 'italic', background: '#ffebeb', borderRadius: '8px', width: '100%' }}>
         You can no longer reply to this conversation.
     </div>
 ) : (
-    <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+    /* 🟢 Condition 3: Agar sab normal hai, toh chat input box dikhao */
+    <div className="message-input" style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
         <input type="file" ref={fileInputRef} multiple style={{ display: "none" }} id="chat-file" onChange={(e) => setFile(e.target.files[0])} />
         <label htmlFor="chat-file" style={{ cursor: 'pointer', fontSize: '20px' }}>{file ? "✅" : "📎"}</label>
 
