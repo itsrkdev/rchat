@@ -31,10 +31,29 @@ router.post("/", authMiddleware, uploadChat.array("file", 10), async (req, res) 
 });
 
 // GET ROUTE: Waisa hi rahega jaise pehle tha
+
+// GET ROUTE: Messages fetch karne ke sath Block Status bhi check karega
 router.get("/:userId", authMiddleware, async (req, res) => {
   const { userId } = req.params;
 
   try {
+    const User = require("../Models/UserModel"); // Aapke User Model ka sahi path
+
+    // 1. Current user aur samne wale user dono ka data nikalein
+    const currentUser = await User.findById(req.userId);
+    const targetUser = await User.findById(userId);
+
+    if (!currentUser || !targetUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 2. Check karein: Kya maine samne wale ko block kiya hai? Ya samne wale ne mujhe?
+    const iHaveBlocked = currentUser.blockedUsers.includes(userId);
+    const theyHaveBlocked = targetUser.blockedUsers.includes(req.userId);
+
+    const isBlocked = iHaveBlocked || theyHaveBlocked;
+
+    // 3. Messages find karne ka aapka purana logic
     const messages = await Chat.find({
       $or: [
         { sender: req.userId, receiver: userId },
@@ -43,13 +62,40 @@ router.get("/:userId", authMiddleware, async (req, res) => {
       deletedBy: { $ne: req.userId }
     }).sort({ createdAt: 1 });
 
-    res.json(messages);
+    // 4. 🟢 BOHOT IMPORTANT: Response me object bhejenge jisme block ka sach hoga!
+    res.json({
+      messages: messages,
+      isBlocked: isBlocked,
+      blockedBy: iHaveBlocked ? req.userId : (theyHaveBlocked ? userId : null)
+    });
 
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+
+// router.get("/:userId", authMiddleware, async (req, res) => {
+//   const { userId } = req.params;
+
+//   try {
+//     const messages = await Chat.find({
+//       $or: [
+//         { sender: req.userId, receiver: userId },
+//         { sender: userId, receiver: req.userId }
+//       ],
+//       deletedBy: { $ne: req.userId }
+//     }).sort({ createdAt: 1 });
+
+//     res.json(messages);
+
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// });
 
 // 🟢 DELETE ROUTE: Isme Cloudinary se media permanently destroy karne ka code jod diya hai
 router.delete("/:id", authMiddleware, async (req, res) => {
