@@ -31,32 +31,46 @@ router.post("/", authMiddleware, uploadChat.array("file", 10), async (req, res) 
 });
 
 // GET ROUTE: Waisa hi rahega jaise pehle tha
-
 // GET ROUTE: Messages fetch karne ke sath dynamic identity aur Block Status check karega
 router.get("/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
 
   try {
     const User = require("../Models/UserModel");
+    const Chat = require("../Models/ChatModel");
 
-    // 1. Messages find karne ka aapka purana logic
+    let targetUserId = id;
+
+    // 1. 🟢 BULLETPROOF IDENTITY SOLVER:
+    // Agar 'id' direct kisi User ki nahi hai, toh pehle ChatModel se check karo ki is chat room mein dusra banda kaun hai
+    const isDirectUser = await User.exists({ _id: id });
+    
+    if (!isDirectUser) {
+      // Agar direct user nahi mila, iska matlab 'id' chat room ya conversation ki ID hai.
+      // Hum database se koi bhi ek message nikalenge jo is chat room ka ho
+      const singleChat = await Chat.findOne({
+        $or: [
+          { _id: id }, // Agar message/room ki ID hai
+          { sender: req.userId }, 
+          { receiver: req.userId }
+        ]
+      });
+
+      if (singleChat) {
+        targetUserId = singleChat.sender.toString() === req.userId.toString()
+          ? singleChat.receiver.toString()
+          : singleChat.sender.toString();
+      }
+    }
+
+    // 2. Messages find karne ka logic
     const messages = await Chat.find({
       $or: [
-        { sender: req.userId, receiver: id },
-        { sender: id, receiver: req.userId }
+        { sender: req.userId, receiver: targetUserId },
+        { sender: targetUserId, receiver: req.userId }
       ],
       deletedBy: { $ne: req.userId }
     }).sort({ createdAt: 1 });
-
-    // 2. 🟢 IDENTITY SOLVER: 
-    // Agar id direct user ki hai toh thik, warna pehle message se saamne wale user ki asli ID pakdo
-    let targetUserId = id;
-    if (messages.length > 0) {
-      const firstMsg = messages[0];
-      targetUserId = firstMsg.sender.toString() === req.userId.toString() 
-        ? firstMsg.receiver.toString() 
-        : firstMsg.sender.toString();
-    }
 
     // 3. Dono users ka data database se nikalenge
     const currentUser = await User.findById(req.userId);
@@ -65,7 +79,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     let isBlocked = false;
     let blockedBy = null;
 
-    // 4. Check karo ki kya dono me se kisi ne bhi block kiya hai
+    // 4. Block Status check karo
     if (currentUser && targetUser) {
       const iHaveBlocked = currentUser.blockedUsers.includes(targetUserId);
       const theyHaveBlocked = targetUser.blockedUsers.includes(req.userId);
@@ -74,7 +88,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
       blockedBy = iHaveBlocked ? req.userId : (theyHaveBlocked ? targetUserId : null);
     }
 
-    // 5. Frontend ko perfect object response bhejo
+    // 5. Response bhejo
     res.json({
       messages: messages,
       isBlocked: isBlocked,
