@@ -945,7 +945,7 @@ export default function Sidebar() {
 
     ///newwwwwwwwwwwwwww
 
- const handleBlockUser = async (blockUserId) => {
+    const handleBlockUser = async (blockUserId) => {
     try {
         const response = await fetch(`${backendUrl}/api/auth/block-user`, {
             method: 'POST',
@@ -969,6 +969,14 @@ export default function Sidebar() {
             ...prev,
             blockedUsers: [...(prev.blockedUsers || []), blockUserId]
         }));
+
+        // 🟢 INSTANT STATE UPDATE: Bina refresh ke button ko dynamic banaye rakhne ke liye
+        setSelectedChat(prev => prev ? { 
+            ...prev, 
+            isBlocked: true, 
+            blockedBy: currentUser._id,
+            isMeBlocked: false 
+        } : prev);
 
         alert(data.message || "User blocked successfully");
     } catch (error) {
@@ -1000,11 +1008,26 @@ const handleUnblockUser = async (unblockUserId) => {
             blockedUsers: (prev.blockedUsers || []).filter(id => id !== unblockUserId)
         }));
 
+        // 🟢 INSTANT STATE UPDATE: Bina refresh ke button ko wapas normal karne ke liye
+        setSelectedChat(prev => prev ? { 
+            ...prev, 
+            isBlocked: false, 
+            blockedBy: null,
+            isMeBlocked: false 
+        } : prev);
+
         alert(data.message || "User unblocked successfully");
     } catch (error) {
         console.error("Unblock User Error:", error);
     }
 };
+
+
+
+
+
+    
+
 
 // 🟢 FIX: Block/Unblock Ke Liye Updated Socket Listener (Bina setIsBlocked Ke)
 useEffect(() => {
@@ -1200,24 +1223,26 @@ useEffect(() => {
                                     <button onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}><Video size={20} /> </button>
                                 )}
 
-                                {/* ⭐ NEW: DYNAMIC BLOCK/UNBLOCK BUTTON ⭐ */}
-                                {currentUser?.blockedUsers?.includes(selectedChat._id) ? (
-                                    <button 
-                                        onClick={() => handleUnblockUser(selectedChat._id)} 
-                                        className="unblock-action-btn"
-                                        style={{ backgroundColor: '#25D366', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                    >
-                                        Unblock
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={() => handleBlockUser(selectedChat._id)} 
-                                        className="block-action-btn"
-                                        style={{ backgroundColor: '#E53E3E', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                    >
-                                        Block
-                                    </button>
-                                )}
+                                {/* ⭐ NEW: DYNAMIC BLOCK/UNBLOCK BUTTON (FIXED FOR REFRESH) ⭐ */}
+{(currentUser?.blockedUsers?.includes(selectedChat?._id) || 
+  (selectedChat?.isBlocked && selectedChat?.blockedBy === currentUser?._id)) ? (
+    <button 
+        onClick={() => handleUnblockUser(selectedChat?._id)} 
+        className="unblock-action-btn"
+        style={{ backgroundColor: '#25D366', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+    >
+        Unblock
+    </button>
+) : (
+    <button 
+        onClick={() => handleBlockUser(selectedChat?._id)} 
+        className="block-action-btn"
+        style={{ backgroundColor: '#E53E3E', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+    >
+        Block
+    </button>
+)}
+                                
                             </div>
 
                             <div className="messages">
