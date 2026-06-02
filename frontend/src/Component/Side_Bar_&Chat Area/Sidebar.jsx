@@ -914,15 +914,12 @@ export default function Sidebar() {
 
 
     ///newwwwwwwwwwwwwww
+
     const handleBlockUser = async (blockUserId) => {
     try {
         const response = await fetch(`${backendUrl}/api/auth/block-user`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Agar aap JWT token use kar rahe hain auth ke liye, toh ye line uncomment kar dena:
-                 'Authorization': `Bearer ${localStorage.getItem('token')}` 
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 myId: currentUser._id,
                 blockUserId: blockUserId
@@ -930,12 +927,13 @@ export default function Sidebar() {
         });
 
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Something went wrong');
+        // 🟢 YEH LINE ADD KAREIN: Samne wale ko signal bhejo ki mene block kar diya
+        if (socket) {
+            socket.emit("blockUser", { to: blockUserId, from: currentUser._id });
         }
 
-        // Local state ko turant update karna taaki UI bina reload hue change ho jaye
         setCurrentUser(prev => ({
             ...prev,
             blockedUsers: [...(prev.blockedUsers || []), blockUserId]
@@ -944,7 +942,6 @@ export default function Sidebar() {
         alert(data.message || "User blocked successfully");
     } catch (error) {
         console.error("Block User Error:", error);
-        alert(error.message);
     }
 };
 
@@ -952,11 +949,7 @@ const handleUnblockUser = async (unblockUserId) => {
     try {
         const response = await fetch(`${backendUrl}/api/auth/unblock-user`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                // Agar aap token use kar rahe hain:
-                 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 myId: currentUser._id,
                 unblockUserId: unblockUserId
@@ -964,12 +957,13 @@ const handleUnblockUser = async (unblockUserId) => {
         });
 
         const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Something went wrong');
 
-        if (!response.ok) {
-            throw new Error(data.error || 'Something went wrong');
+        // 🟢 YEH LINE ADD KAREIN: Samne wale ko signal bhejo ki mene unblock kar diya
+        if (socket) {
+            socket.emit("unblockUser", { to: unblockUserId, from: currentUser._id });
         }
 
-        // Local state se ID remove karein
         setCurrentUser(prev => ({
             ...prev,
             blockedUsers: (prev.blockedUsers || []).filter(id => id !== unblockUserId)
@@ -978,9 +972,53 @@ const handleUnblockUser = async (unblockUserId) => {
         alert(data.message || "User unblocked successfully");
     } catch (error) {
         console.error("Unblock User Error:", error);
-        alert(error.message);
     }
 };
+
+
+
+    
+    // 🟢 Block/Unblock Ke Liye Alag Se Socket Listener
+useEffect(() => {
+    if (!socket || !currentUser?._id) return;
+
+    // Purane listeners ko pehle clean karein
+    socket.off("userBlockedMe");
+    socket.off("userUnblockedMe");
+
+    // 1. Jab koi aapko REAL-TIME mein block karega
+    socket.on("userBlockedMe", ({ blockedBy }) => {
+        setSelectedChat(prev => {
+            if (prev && String(prev._id) === String(blockedBy)) {
+                return {
+                    ...prev,
+                    blockedUsers: [...(prev.blockedUsers || []), String(currentUser._id)]
+                };
+            }
+            return prev;
+        });
+    });
+
+    // 2. Jab koi aapko REAL-TIME mein unblock karega
+    socket.on("userUnblockedMe", ({ unblockedBy }) => {
+        setSelectedChat(prev => {
+            if (prev && String(prev._id) === String(unblockedBy)) {
+                return {
+                    ...prev,
+                    blockedUsers: (prev.blockedUsers || []).filter(id => String(id) !== String(currentUser._id))
+                };
+            }
+            return prev;
+        });
+    });
+
+    // Cleanup functions jab component unmount ho
+    return () => {
+        socket.off("userBlockedMe");
+        socket.off("userUnblockedMe");
+    };
+}, [socket, currentUser, setSelectedChat]); // Yeh dependencies zaroori hain
+
     
 
     return (
