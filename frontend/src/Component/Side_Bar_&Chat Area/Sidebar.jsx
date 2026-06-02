@@ -915,43 +915,73 @@ export default function Sidebar() {
 
     ///newwwwwwwwwwwwwww
     const handleBlockUser = async (blockUserId) => {
-        try {
-            const response = await axios.post(`${backendUrl}/api/auth/block-user`, {
+    try {
+        const response = await fetch(`${backendUrl}/api/auth/block-user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Agar aap JWT token use kar rahe hain auth ke liye, toh ye line uncomment kar dena:
+                 'Authorization': `Bearer ${localStorage.getItem('token')}` 
+            },
+            body: JSON.stringify({
                 myId: currentUser._id,
                 blockUserId: blockUserId
-            });
+            })
+        });
 
-            // Local state ko turant update karna taaki UI bina reload hue change ho jaye
-            setCurrentUser(prev => ({
-                ...prev,
-                blockedUsers: [...(prev.blockedUsers || []), blockUserId]
-            }));
+        const data = await response.json();
 
-            alert(response.data.message);
-        } catch (error) {
-            console.error("Block User Error:", error);
+        if (!response.ok) {
+            throw new Error(data.error || 'Something went wrong');
         }
-    };
 
-    const handleUnblockUser = async (unblockUserId) => {
-        try {
-            const response = await axios.post(`${backendUrl}/api/auth/unblock-user`, {
+        // Local state ko turant update karna taaki UI bina reload hue change ho jaye
+        setCurrentUser(prev => ({
+            ...prev,
+            blockedUsers: [...(prev.blockedUsers || []), blockUserId]
+        }));
+
+        alert(data.message || "User blocked successfully");
+    } catch (error) {
+        console.error("Block User Error:", error);
+        alert(error.message);
+    }
+};
+
+const handleUnblockUser = async (unblockUserId) => {
+    try {
+        const response = await fetch(`${backendUrl}/api/auth/unblock-user`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // Agar aap token use kar rahe hain:
+                 'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
                 myId: currentUser._id,
                 unblockUserId: unblockUserId
-            });
+            })
+        });
 
-            // Local state se ID remove karein
-            setCurrentUser(prev => ({
-                ...prev,
-                blockedUsers: prev.blockedUsers.filter(id => id !== unblockUserId)
-            }));
+        const data = await response.json();
 
-            alert(response.data.message);
-        } catch (error) {
-            console.error("Unblock User Error:", error);
+        if (!response.ok) {
+            throw new Error(data.error || 'Something went wrong');
         }
-    };
 
+        // Local state se ID remove karein
+        setCurrentUser(prev => ({
+            ...prev,
+            blockedUsers: (prev.blockedUsers || []).filter(id => id !== unblockUserId)
+        }));
+
+        alert(data.message || "User unblocked successfully");
+    } catch (error) {
+        console.error("Unblock User Error:", error);
+        alert(error.message);
+    }
+};
+    
 
     return (
         <div className="container">
