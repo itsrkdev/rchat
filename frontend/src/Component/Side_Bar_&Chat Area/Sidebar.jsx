@@ -511,8 +511,6 @@ export default function Sidebar() {
     }, []);
 
 
-
-
     useEffect(() => {
         async function fetchCurrentUser() {
             try {
@@ -625,7 +623,6 @@ export default function Sidebar() {
     const visibleChats = users.filter(
         u => !archivedChats.includes(u._id) && u.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
 
 
     const resetCallStates = () => {
@@ -840,7 +837,6 @@ export default function Sidebar() {
     }, [isCalling, localStream]);
 
 
-
     // --- 1. CALL START ---
 
     const startCall = async () => {
@@ -1021,12 +1017,6 @@ const handleUnblockUser = async (unblockUserId) => {
         console.error("Unblock User Error:", error);
     }
 };
-
-
-
-
-
-    
 
 
 // 🟢 FIX: Block/Unblock Ke Liye Updated Socket Listener (Bina setIsBlocked Ke)
