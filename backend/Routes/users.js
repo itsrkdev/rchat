@@ -108,19 +108,5 @@ router.post("/loguser", authMiddleware, async (req, res) => {
     }
 });
 
-// router.post("/loguser", authMiddleware, async (req, res) => {
-//     try {
-//         const currentUser = await User.findById(req.userId)
-//             .select("_id name avatar  status");
-
-//         res.json(currentUser);
-//     } catch (err) {
-//         console.error("Error fetching logged-in user:", err);
-//         res.status(500).json({ message: "Server error" });
-//     }
-// });
-
-
-
 
 module.exports = router;
