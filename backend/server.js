@@ -50,7 +50,6 @@ app.get("/",(req,res)=>{
 })
 
 
-
 // Global Socket.io references
 global.users = {}; // { userId: socketId }
 global.io = null;
@@ -134,23 +133,8 @@ io.on("connection", (socket) => {
             name: name,
             offer: offer
         });
-
         
     });
-
-
-
-
-    // socket.on("callUser", ({ to, from, name, offer }) => {
-    //     console.log("📞 CALL REQUEST TO ROOM:", to);
-
-    //     // ⭐ socket.id ki zaroorat nahi, directly 'to' (userId) wale room mein bhejo
-    //     io.to(to).emit("incomingCall", { from, name, offer });
-
-    //     console.log("FROM:", from);
-    //     console.log("TO (Target):", to);
-    //     console.log("Global Users List:", global.users);
-    // });
 
     socket.on("acceptCall", ({ to, answer }) => {
          io.to(to).emit("callAccepted", { answer });
@@ -174,7 +158,6 @@ socket.on("unblockUser", ({ to, from }) => {
 });
 
     
-
     socket.on("callRejected", ({ to }) => {
         const callerSocketId = global.users[to];
 
@@ -207,15 +190,6 @@ socket.on("unblockUser", ({ to, from }) => {
         from: socket.userId // Kisne bheja ye batana bhi behtar hai
     });
 });
-
-    // socket.on("iceCandidate", ({ to, candidate }) => {
-    //     io.to(to).emit("iceCandidate", { candidate });
-    //     // const receiverSocketId = global.users[to];
-    //     // if (receiverSocketId) {
-    //     //     io.to(receiverSocketId).emit("iceCandidate", { candidate });
-    //     // }
-    // });
-
 
 });
 
