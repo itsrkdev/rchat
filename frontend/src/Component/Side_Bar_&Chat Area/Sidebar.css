@@ -1065,6 +1065,9 @@ body.dark .chat-conatiner {
 body.dark .header-name {
     color: #ffffff;
 }
+body.dark .vc-btn{
+    color:white;
+}
 
 /* MESSAGE TIME */
 body.dark .message-time {
