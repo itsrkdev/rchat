@@ -1210,7 +1210,7 @@ useEffect(() => {
 
                                 {/* Call Button (Sirf tab chalega jab kisi ne block na kiya ho) */}
                                 {!(currentUser?.blockedUsers?.includes(selectedChat._id) || selectedChat?.blockedUsers?.includes(currentUser?._id)) && (
-                                    <button onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}><Video size={20} /> </button>
+                                    <button className="vc-btn" onClick={startCall} style={{ marginRight: '10px', background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}><Video size={20} /> </button>
                                 )}
 
                                 {/* ⭐ NEW: DYNAMIC BLOCK/UNBLOCK BUTTON (FIXED FOR REFRESH) ⭐ */}
