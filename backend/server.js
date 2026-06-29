@@ -45,9 +45,13 @@ app.use('/uploads', express.static(path.join(__dirname, "uploads")));
 app.use("/api/auth", require("./Routes/authRoute"));
 app.use("/api/chats", require("./Routes/chatRoute"));
 app.use("/api/users", require("./Routes/users"));
+
 app.get("/",(req,res)=>{
     res.send("server is running")
 })
+app.get("/status", (req, res) => {
+  res.send("Server is alive and kicking!");
+});
 
 
 // Global Socket.io references
