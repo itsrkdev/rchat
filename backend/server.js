@@ -26,15 +26,15 @@ const getNetworkIp = () => {
 
 
 // Ensure the full uploads folder exists
-const uploadPath = path.join(__dirname, "uploads/avatars");
-if (!fs.existsSync(uploadPath)) {
-    fs.mkdirSync(uploadPath, { recursive: true });
-}
+// const uploadPath = path.join(__dirname, "uploads/avatars");
+// if (!fs.existsSync(uploadPath)) {
+//     fs.mkdirSync(uploadPath, { recursive: true });
+// }
 
-const uploadFiles = path.join(__dirname, "uploads/files");
-if (!fs.existsSync(uploadFiles)) {
-    fs.mkdirSync(uploadFiles, { recursive: true });
-}
+// const uploadFiles = path.join(__dirname, "uploads/files");
+// if (!fs.existsSync(uploadFiles)) {
+//     fs.mkdirSync(uploadFiles, { recursive: true });
+// }
 
 // Middleware
 app.use(cors());
