@@ -1124,7 +1124,7 @@ useEffect(() => {
                                     className="sidebar-avatar"
                                 />
                             </label>
-                            <span>Dp</span>
+                            <span>Change the DP</span>
                         </div>
                         <button className="chat-logout-btn" onClick={handleLogout}>Logout</button>
                     </div>
