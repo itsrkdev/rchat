@@ -97,7 +97,7 @@
 
 
    /* RIGHT PANEL (INPUT FORM) */
-  
+
 .login-right-panel {
     flex: 1;
     padding: 45px;
@@ -265,5 +265,122 @@
     .form-subtitle {
         text-align: center;
         margin-bottom: 20px;
+    }
+}
+
+/* ==========================================
+   FORGOT PASSWORD & OTP SCREENS
+========================================== */
+
+.forgot-password-link {
+    display: flex;
+    justify-content: flex-end;
+    margin: -5px 0 12px;
+    font-size: 13px;
+}
+
+.forgot-password-link span {
+    color: #10b981;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.forgot-password-link span:hover {
+    color: #059669;
+    text-decoration: underline;
+}
+
+/* Success and Error Messages */
+
+.auth-feedback {
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0 0 12px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+}
+
+.auth-feedback.success {
+    color: #15803d;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.auth-feedback.error {
+    color: #dc2626;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+/* Resend OTP */
+
+.auth-resend-area {
+    text-align: center;
+    margin-top: 18px;
+}
+
+.auth-resend-area p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 8px;
+}
+
+.auth-text-button {
+    background: none;
+    border: none;
+    padding: 4px;
+    color: #10b981;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.auth-text-button:hover:not(:disabled) {
+    color: #059669;
+    text-decoration: underline;
+}
+
+.auth-text-button:disabled {
+    color: #999999;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Disabled Submit Button */
+
+.modern-submit-btn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Input Improvements */
+
+.modern-input {
+    min-width: 0;
+}
+
+.modern-input::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+    .auth-feedback {
+        font-size: 12px;
+    }
+
+    .forgot-password-link {
+        margin-top: -5px;
+    }
+
+    .auth-resend-area {
+        margin-top: 16px;
     }
 }
