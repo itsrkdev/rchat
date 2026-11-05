@@ -50,6 +50,8 @@ app.get("/",(req,res)=>{
     res.send("server is running")
 })
 
+console.log("Gmail:", !!process.env.EMAIL_USER);
+console.log("App Password:", !!process.env.EMAIL_APP_PASSWORD);
 
 // Global Socket.io references
 global.users = {}; // { userId: socketId }
@@ -59,7 +61,7 @@ global.io = null;
 const io = socketIo(server, {
     pingTimeout: 5000,    // 5 sec mein detect karega agar connection lost hai
     pingInterval: 2000,   // Har 2 sec mein check karega
-   cors: { origin: ["https://itsrchat.netlify.app", "https://rchat-gcv1.onrender.com"] }
+   cors: { origin: ["https://itsrchat.netlify.app", "https://rchat-gcv1.onrender.com","http://localhost:5173"] }
     // cors: { origin: "*", methods: ["GET", "POST"] }
 });
 global.io = io; // assign io to global so routes can access it
@@ -126,7 +128,7 @@ io.on("connection", (socket) => {
 
         console.log(`📞 Sending call to: ${to}`);
 
-        // Frontend ko 'to' property wapas bhejna ZAROORI hai 
+        // Frontend ko 'to' property wapas bhejna ZAROORI hai
         // taaki wo match kar sake: if (data.to === currentUser._id)
         io.to(to).emit("incomingCall", {
             to: to,      // <--- YE LINE MISSING HAI SHAYAD
@@ -134,7 +136,7 @@ io.on("connection", (socket) => {
             name: name,
             offer: offer
         });
-        
+
     });
 
     socket.on("acceptCall", ({ to, answer }) => {
@@ -158,7 +160,7 @@ socket.on("unblockUser", ({ to, from }) => {
     io.to(to).emit("userUnblockedMe", { unblockedBy: from });
 });
 
-    
+
     socket.on("callRejected", ({ to }) => {
         const callerSocketId = global.users[to];
 
@@ -186,8 +188,8 @@ socket.on("unblockUser", ({ to, from }) => {
    socket.on("iceCandidate", ({ to, candidate }) => {
     // 'to' yahan target user ki ID hai.
     // Hamesha room (UserId) ka use karein kyunki aapne socket.join(userId) kiya hua hai.
-    io.to(to).emit("iceCandidate", { 
-        candidate, 
+    io.to(to).emit("iceCandidate", {
+        candidate,
         from: socket.userId // Kisne bheja ye batana bhi behtar hai
     });
 });
@@ -202,8 +204,8 @@ mongoose.connect(process.env.MONGO_URL)
         // server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
         server.listen(PORT, "0.0.0.0", () => {
             console.log(`Server running on port ${PORT}`);
-            console.log(`Local Access: http://localhost:${PORT}`);
-            console.log(`  Network Access: http://${networkIp}:${PORT}`); // Aapka Hotspot IP
+            //console.log(`Local Access: http://localhost:${PORT}`);
+          //  console.log(`  Network Access: http://${networkIp}:${PORT}`); // Aapka Hotspot IP
         });
     })
     .catch(err => console.log("MongoDB connection error:", err));
